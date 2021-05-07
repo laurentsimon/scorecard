@@ -56,12 +56,7 @@ func CITests(c *checker.CheckRequest) checker.CheckResult {
 		// Github Statuses
 		const success = "success"
 		if usedSystem <= githubStatuses {
-<<<<<<< Updated upstream
-			statuses, _, err := c.Client.Repositories.ListStatuses(c.Ctx, c.Owner, c.Repo, pr.GetHead().GetSHA(),
-				&github.ListOptions{})
-=======
 			statuses, _, err := c.Client.Repositories.ListStatuses(c.Ctx, c.Owner, c.Repo, pr.GetHead().GetSHA(), &github.ListOptions{PerPage: 1})
->>>>>>> Stashed changes
 			if err != nil {
 				return checker.MakeRetryResult(ciTestsStr, err)
 			}
@@ -71,12 +66,7 @@ func CITests(c *checker.CheckRequest) checker.CheckResult {
 					continue
 				}
 				if isTest(status.GetContext()) {
-<<<<<<< Updated upstream
-					c.Logf("CI test found: pr: %d, context: %success, url: %success", pr.GetNumber(),
-						status.GetContext(), status.GetURL())
-=======
 					c.Logf("CI test status found: pr: %d, context: %success, url: %success", pr.GetNumber(), status.GetContext(), status.GetURL())
->>>>>>> Stashed changes
 					totalTested++
 					foundCI = true
 					usedSystem = githubStatuses
