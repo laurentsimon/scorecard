@@ -45,6 +45,7 @@ func MakeRetryResult(name string, err error) CheckResult {
 	return CheckResult{
 		Name:        name,
 		Pass:        false,
+		Confidence:  0,
 		ShouldRetry: true,
 		Error:       err,
 	}
@@ -74,6 +75,6 @@ func MakeProportionalResult(name string, numerator int, denominator int,
 	return CheckResult{
 		Name:       name,
 		Pass:       false,
-		Confidence: MaxResultConfidence - int(actual*MaxResultConfidence),
+		Confidence: int(actual * MaxResultConfidence),
 	}
 }

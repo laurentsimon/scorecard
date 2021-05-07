@@ -28,17 +28,26 @@ func init() {
 }
 
 func PullRequests(c *checker.CheckRequest) checker.CheckResult {
+	// Cover only the last X days
+	// this is fine for continuous service that updates its db every so often, but won't necessarily work for an end user
+	// Need to update doc. Is there a way to search commits via an API?
 	commits, _, err := c.Client.Repositories.ListCommits(c.Ctx, c.Owner, c.Repo, &github.CommitsListOptions{})
 	if err != nil {
 		return checker.MakeRetryResult(pullRequestsStr, err)
 	}
+
+	c.Logf("len commits: %zu", len(commits))
 
 	total := 0
 	totalWithPrs := 0
 	for _, commit := range commits {
 		isBot := false
 		committer := commit.GetCommitter().GetLogin()
+		// Should be a ==, not Contains
+
+		// update doc for ignore bots
 		for _, substring := range []string{"bot", "gardener"} {
+			c.Logf("substring: %s %s", substring, committer)
 			if strings.Contains(committer, substring) {
 				isBot = true
 				break

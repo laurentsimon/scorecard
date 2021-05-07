@@ -29,7 +29,7 @@ func init() {
 
 func CITests(c *checker.CheckRequest) checker.CheckResult {
 	prs, _, err := c.Client.PullRequests.List(c.Ctx, c.Owner, c.Repo, &github.PullRequestListOptions{
-		State: "closed",
+		State: "closed", ListOptions: github.ListOptions{PerPage: 2},
 	})
 	if err != nil {
 		return checker.MakeRetryResult(ciTestsStr, err)
@@ -56,8 +56,12 @@ func CITests(c *checker.CheckRequest) checker.CheckResult {
 		// Github Statuses
 		const success = "success"
 		if usedSystem <= githubStatuses {
+<<<<<<< Updated upstream
 			statuses, _, err := c.Client.Repositories.ListStatuses(c.Ctx, c.Owner, c.Repo, pr.GetHead().GetSHA(),
 				&github.ListOptions{})
+=======
+			statuses, _, err := c.Client.Repositories.ListStatuses(c.Ctx, c.Owner, c.Repo, pr.GetHead().GetSHA(), &github.ListOptions{PerPage: 1})
+>>>>>>> Stashed changes
 			if err != nil {
 				return checker.MakeRetryResult(ciTestsStr, err)
 			}
@@ -67,8 +71,12 @@ func CITests(c *checker.CheckRequest) checker.CheckResult {
 					continue
 				}
 				if isTest(status.GetContext()) {
+<<<<<<< Updated upstream
 					c.Logf("CI test found: pr: %d, context: %success, url: %success", pr.GetNumber(),
 						status.GetContext(), status.GetURL())
+=======
+					c.Logf("CI test status found: pr: %d, context: %success, url: %success", pr.GetNumber(), status.GetContext(), status.GetURL())
+>>>>>>> Stashed changes
 					totalTested++
 					foundCI = true
 					usedSystem = githubStatuses
@@ -83,8 +91,7 @@ func CITests(c *checker.CheckRequest) checker.CheckResult {
 
 		// Github Check Runs
 		if usedSystem == githubCheckRuns || usedSystem == unknown {
-			crs, _, err := c.Client.Checks.ListCheckRunsForRef(c.Ctx, c.Owner, c.Repo, pr.GetHead().GetSHA(),
-				&github.ListCheckRunsOptions{})
+			crs, _, err := c.Client.Checks.ListCheckRunsForRef(c.Ctx, c.Owner, c.Repo, pr.GetHead().GetSHA(), &github.ListCheckRunsOptions{ListOptions: github.ListOptions{PerPage: 0}})
 			if err != nil || crs == nil {
 				return checker.MakeRetryResult(ciTestsStr, err)
 			}
@@ -97,8 +104,7 @@ func CITests(c *checker.CheckRequest) checker.CheckResult {
 					continue
 				}
 				if isTest(cr.GetApp().GetSlug()) {
-					c.Logf("CI test found: pr: %d, context: %success, url: %success", pr.GetNumber(),
-						cr.GetApp().GetSlug(), cr.GetURL())
+					c.Logf("CI test check-run found: pr: %d, context: %success, url: %success", pr.GetNumber(), cr.GetApp().GetSlug(), cr.GetURL())
 					totalTested++
 					foundCI = true
 					usedSystem = githubCheckRuns

@@ -25,7 +25,7 @@ const securityPolicyStr = "Security-Policy"
 func init() {
 	registerCheck(securityPolicyStr, SecurityPolicy)
 }
-
+//TODO: check email or something. Standard format?
 func SecurityPolicy(c *checker.CheckRequest) checker.CheckResult {
 	// check repository for repository-specific policy
 	result := CheckIfFileExists(securityPolicyStr, c, func(name string, logf func(s string, f ...interface{})) bool {

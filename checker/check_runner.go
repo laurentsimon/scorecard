@@ -34,7 +34,7 @@ type logger struct {
 }
 
 func (l *logger) Logf(s string, f ...interface{}) {
-	l.messages = append(l.messages, fmt.Sprintf(s, f...))
+	l.messages = append(l.messages, fmt.Sprintf("\t"+s, f...))
 }
 
 func (r *Runner) Run(f CheckFn) CheckResult {

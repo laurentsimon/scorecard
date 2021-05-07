@@ -21,7 +21,7 @@ import (
 
 const (
 	signedTagsStr = "Signed-Tags"
-	tagLookBack   = 5
+	tagLookBack   = 3
 )
 
 func init() {

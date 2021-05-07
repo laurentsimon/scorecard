@@ -17,6 +17,7 @@ package checks
 import (
 	"archive/tar"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -24,6 +25,7 @@ import (
 	"github.com/ossf/scorecard/checker"
 )
 
+// TODO: readme, security.md, check for email and send email
 // CheckIfFileExists downloads the tar of the repository and calls the predicate to check
 // for the occurrence.
 func CheckIfFileExists(checkName string, c *checker.CheckRequest, predicate func(name string,
@@ -33,8 +35,10 @@ func CheckIfFileExists(checkName string, c *checker.CheckRequest, predicate func
 		return checker.MakeRetryResult(checkName, err)
 	}
 	url := r.GetArchiveURL()
+	fmt.Printf("url:%s\n", url)
 	url = strings.Replace(url, "{archive_format}", "tarball/", 1)
 	url = strings.Replace(url, "{/ref}", r.GetDefaultBranch(), 1)
+	fmt.Printf("url:%s\n", url)
 
 	// Using the http.get instead of the lib httpClient because
 	// the default checker.HTTPClient caches everything in the memory and it causes oom.
@@ -63,6 +67,37 @@ func CheckIfFileExists(checkName string, c *checker.CheckRequest, predicate func
 
 		// Strip the repo name
 		const splitLength = 2
+
+		if hdr.Name == "ossf-scorecard-a2d51ea/gitcache/README.md" {
+
+			// switch hdr.Typeflag {
+
+			// case tar.TypeReg:
+			// 	fmt.Println("Name: ", hdr.Name)
+
+			// 	fmt.Println(" --- ")
+			// 	io.Copy(os.Stdout, tr)
+			// 	fmt.Println(" --- ")
+
+			// default:
+			// 	fmt.Printf("%s : %c %s %s\n",
+			// 		"Yikes! Unable to figure out type",
+			// 		hdr.Typeflag,
+			// 		"in file",
+			// 		hdr.Name,
+			// 	)
+			// }
+			content := make([]byte, hdr.Size)
+			size, err := tr.Read(content)
+			fmt.Printf("%s %d %d %d %d\n", hdr.Name, size, hdr.Size, err, hdr.Typeflag)
+			if err != io.EOF || int64(size) != hdr.Size {
+				break
+			}
+
+			fmt.Printf("%s", content)
+			contentType := http.DetectContentType(content)
+			fmt.Printf("%s", contentType)
+		}
 		names := strings.SplitN(hdr.Name, "/", splitLength)
 		if len(names) < splitLength {
 			continue

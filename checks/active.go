@@ -51,9 +51,14 @@ func IsActive(c *checker.CheckRequest) checker.CheckResult {
 			totalCommits++
 		}
 	}
-	c.Logf("commits in last %d days: %d", lookbackDays, totalCommits)
+
 	const numCommits = 2
-	const confidence = 10
+	if totalCommits < numCommits {
+		c.Logf("Commits in last %d days greater than %d: NO (%d)", lookbackDays, numCommits, totalCommits)
+	} else {
+		c.Logf("Commits in last %d days greater than %d: YES (%d)", lookbackDays, numCommits, totalCommits)
+	}
+	const confidence = checker.MaxResultConfidence
 	return checker.CheckResult{
 		Name:       activeStr,
 		Pass:       totalCommits >= numCommits,

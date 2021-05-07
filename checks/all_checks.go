@@ -14,10 +14,13 @@
 
 package checks
 
-import "github.com/ossf/scorecard/checker"
+import (
+	"github.com/ossf/scorecard/checker"
+)
 
 var AllChecks = checker.CheckNameToFnMap{}
 
 func registerCheck(name string, fn checker.CheckFn) {
+	//fmt.Printf("registerCheck:%s -> %s\n", name, fn)
 	AllChecks[name] = fn
 }

@@ -79,11 +79,14 @@ func (r *RepoResult) AsCSV(showDetails bool, writer io.Writer) error {
 func (r *RepoResult) AsString(showDetails bool, writer io.Writer) error {
 	fmt.Fprintf(writer, "Repo: %s\n", r.Repo)
 	for _, checkResult := range r.Checks {
-		fmt.Fprintf(writer, "%s: %s %d\n", checkResult.Name, displayResult(checkResult.Pass), checkResult.Confidence)
+		//fmt.Fprintf(writer, "%s: %s %d\n", checkResult.Name, displayResult(checkResult.Pass), checkResult.Confidence)
 		if showDetails {
+			fmt.Fprintf(writer, "%s: %s \n\tConfidence: %d%%\n", checkResult.Name, displayResult(checkResult.Pass), checkResult.Confidence*10)
 			for _, d := range checkResult.Details {
 				fmt.Fprintf(writer, "%s\n", d)
 			}
+		} else {
+			fmt.Fprintf(writer, "%s: %s %d\n", checkResult.Name, displayResult(checkResult.Pass), checkResult.Confidence)
 		}
 	}
 	return nil

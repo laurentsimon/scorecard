@@ -55,7 +55,7 @@ func CIIBestPractices(c *checker.CheckRequest) checker.CheckResult {
 	if err := json.Unmarshal(b, &parsedResponse); err != nil {
 		return checker.MakeRetryResult(ciiBestPracticesStr, err)
 	}
-
+	fmt.Printf("%s", parsedResponse)
 	if len(parsedResponse) < 1 {
 		c.Logf("no badge found")
 		return checker.CheckResult{

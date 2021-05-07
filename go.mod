@@ -7,6 +7,7 @@ require (
 	github.com/bradleyfalzon/ghinstallation v1.1.1
 	github.com/google/go-cmp v0.5.5 // indirect
 	github.com/google/go-github/v32 v32.1.0
+	github.com/h2non/filetype v1.1.1 // indirect
 	github.com/jszwec/csvutil v1.5.0
 	github.com/kr/text v0.2.0 // indirect
 	github.com/naveensrinivasan/httpcache v1.2.2
@@ -14,6 +15,7 @@ require (
 	github.com/onsi/gomega v1.11.0
 	github.com/peterbourgon/diskv v2.0.1+incompatible
 	github.com/pkg/errors v0.9.1
+	github.com/ramya-rao-a/go-outline v0.0.0-20200117021646-2a048b4510eb // indirect
 	github.com/shurcooL/githubv4 v0.0.0-20200928013246-d292edc3691b
 	github.com/shurcooL/graphql v0.0.0-20200928012149-18c5c3165e3a // indirect
 	github.com/spf13/cobra v1.1.3

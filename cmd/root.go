@@ -107,6 +107,7 @@ or ./scorecard --{npm,pypi,rubgems}=<package_name> [--checks=check1,...] [--show
 		}
 
 		enabledChecks := checker.CheckNameToFnMap{}
+
 		if len(checksToRun) != 0 {
 			for _, checkToRun := range checksToRun {
 				if checkFn, ok := checks.AllChecks[checkToRun]; ok {
@@ -116,6 +117,7 @@ or ./scorecard --{npm,pypi,rubgems}=<package_name> [--checks=check1,...] [--show
 		} else {
 			enabledChecks = checks.AllChecks
 		}
+		//fmt.Printf("enabledChecks: %s\n", enabledChecks)
 		if format == formatDefault {
 			for checkName := range enabledChecks {
 				fmt.Fprintf(os.Stderr, "Starting [%s]\n", checkName)

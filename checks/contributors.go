@@ -36,7 +36,7 @@ func Contributors(c *checker.CheckRequest) checker.CheckResult {
 	if err != nil {
 		return checker.MakeRetryResult(contributorsStr, err)
 	}
-
+	c.Logf("%d", len(contribs))
 	companies := map[string]struct{}{}
 	for _, contrib := range contribs {
 		//nolint:nestif
@@ -57,6 +57,7 @@ func Contributors(c *checker.CheckRequest) checker.CheckResult {
 
 		company := u.GetCompany()
 		if company != "" {
+			c.Logf("%s", company)
 			company = strings.ToLower(company)
 			company = strings.ReplaceAll(company, "inc.", "")
 			company = strings.ReplaceAll(company, "llc", "")

@@ -31,8 +31,11 @@ func FrozenDeps(c *checker.CheckRequest) checker.CheckResult {
 	return CheckIfFileExists(frozenDepsStr, c, filePredicate)
 }
 
+// https://docs.github.com/en/rest/reference/repos#list-repository-languages
 // filePredicate will validate the if frozen dependecies file name exists.
 func filePredicate(name string, logf func(s string, f ...interface{})) bool {
+	// panic("bla")
+	//logf("name %s", name)
 	switch strings.ToLower(name) {
 	case "go.mod", "go.sum":
 		logf("go modules found: %s", name)
