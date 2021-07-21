@@ -119,8 +119,12 @@ func CodeQLInCheckDefinitions(c *checker.CheckRequest) checker.CheckResult {
 	searchQuery := ("github/codeql-action path:/.github/workflows repo:" + c.Owner + "/" + c.Repo)
 	results, _, err := c.Client.Search.Code(c.Ctx, searchQuery, &github.SearchOptions{})
 	if err != nil {
+<<<<<<< HEAD
 		e := sce.Create(sce.ErrScorecardInternal, fmt.Sprintf("Client.Search.Code: %v", err))
 		return checker.CreateRuntimeErrorResult(CheckSAST, e)
+=======
+		return checker.CreateRuntimeErrorResult(CheckSAST, err)
+>>>>>>> df2c564 (vulnerabilities)
 	}
 
 	for _, result := range results.CodeResults {
