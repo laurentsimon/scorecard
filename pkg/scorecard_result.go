@@ -30,6 +30,7 @@ import (
 	sce "github.com/ossf/scorecard/v2/errors"
 )
 
+// TODO: this file should go unnder a format/ folder.
 // ScorecardResult struct is returned on a successful Scorecard run.
 type ScorecardResult struct {
 	Repo     string
@@ -97,6 +98,87 @@ func (r *ScorecardResult) AsCSV(showDetails bool, logLevel zapcore.Level, writer
 		//nolint:wrapcheck
 		return sce.Create(sce.ErrScorecardInternal, fmt.Sprintf("csv.Flush: %v", err))
 	}
+	return nil
+}
+
+// AsSARIF outputs ScorecardResult in SARIF 2.1.0 format.
+func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel zapcore.Level, writer io.Writer) error {
+	//nolint
+	// https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html.
+	// We only support GitHub-supported properties:
+	// see https://docs.github.com/en/code-security/secure-coding/integrating-with-code-scanning/sarif-support-for-code-scanning#supported-sarif-output-file-properties.
+	type text struct {
+		Text string `json:"text"`
+	}
+
+	type region struct {
+		StartLine   int `json:"startLine"`
+		EndLine     int `json:"endLine"`
+		StartColumn int `json:"startColumn"`
+		EndColumn   int `json:"endColumn"`
+	}
+
+	type location struct {
+		PhysicalLocation struct {
+			ArtifactLocation struct {
+				URI        string `json:"uri"`
+				URIBasedID string `json:"uriBaseId"`
+				Region     region `json:"region"`
+			} `json:"artifactLocation"`
+		} `json:"physicalLocation"`
+	}
+
+	type partialFingerprints map[string]string
+
+	type rule struct {
+		ID            string `json:"id"`
+		Name          string `json:"name"`
+		ShortDesc     text   `json:"shortDescription"`
+		FullDesc      text   `json:"fullDescription"`
+		DefaultConfig struct {
+			Level string `json:"level"`
+		} `json:"defaultConfiguration"`
+		Properties struct {
+			Tags      []string `json:"tags"`
+			Precision string   `json:"precision"`
+		} `json:"properties"`
+	}
+
+	type tool struct {
+		Driver struct {
+			Name       string `json:"name"`
+			SemVersion string `json:"semanticVersion"`
+			Rules      []rule `json:"rules"`
+		} `json:"driver"`
+	}
+
+	type result struct {
+		RuleID              string              `json:"ruleId"`
+		Level               string              `json:"level"` // Optional.
+		RuleIndex           int                 `json:"ruleIndex"`
+		Message             text                `json:"message"`
+		Locations           []location          `json:"locations"`
+		RelatedLocations    []location          `json:"relatedLocations"`
+		PartialFingerprints partialFingerprints `json:"partialFingerprints"`
+	}
+	type run struct {
+		Tool              tool `json:"tool"`
+		AutomationDetails struct {
+			ID string `json:"id"`
+		} `json:"automationDetails"`
+		Results []result
+	}
+
+	type sarif210 struct {
+		Schema  string `json:"$schema"`
+		Version string `json:"version"`
+		Runs    []run  `json:"runs"`
+	}
+	return nil
+}
+
+// AsHTML outputs ScorecardResult in HTML format.
+func (r *ScorecardResult) AsHTML(showDetails bool, logLevel zapcore.Level, writer io.Writer) error {
 	return nil
 }
 

@@ -55,8 +55,10 @@ var (
 )
 
 const (
-	formatCSV     = "csv"
-	formatJSON    = "json"
+	formatSarif   = "sarif"
+	formatHtml    = "html"
+	formatCsv     = "csv"
+	formatJson    = "json"
 	formatDefault = "default"
 )
 
@@ -158,10 +160,14 @@ or ./scorecard --{npm,pypi,rubgems}=<package_name> [--checks=check1,...] [--show
 		switch format {
 		case formatDefault:
 			err = repoResult.AsString(showDetails, *logLevel, os.Stdout)
-		case formatCSV:
-			err = repoResult.AsCSV(showDetails, *logLevel, os.Stdout)
-		case formatJSON:
+		case formatJson:
 			err = repoResult.AsJSON(showDetails, *logLevel, os.Stdout)
+		case formatCsv:
+			err = repoResult.AsCSV(showDetails, *logLevel, os.Stdout)
+		case formatSarif:
+			err = repoResult.AsSARIF(showDetails, *logLevel, os.Stdout)
+		case formatHtml:
+			err = repoResult.AsHTML(showDetails, *logLevel, os.Stdout)
 		default:
 			err = sce.Create(sce.ErrScorecardInternal,
 				fmt.Sprintf("invalid format flag: %v. Expected [default, csv, json]", format))
@@ -315,7 +321,7 @@ func init() {
 	rootCmd.Flags().StringVar(
 		&rubygems, "rubygems", "",
 		"rubygems package to check, given that the rubygems package has a GitHub repository")
-	rootCmd.Flags().StringVar(&format, "format", formatDefault, "output format. allowed values are [default, csv, json]")
+	rootCmd.Flags().StringVar(&format, "format", formatDefault, "output format. allowed values are [default, sarif, html, json, csv]")
 	rootCmd.Flags().StringSliceVar(
 		&metaData, "metadata", []string{}, "metadata for the project.It can be multiple separated by commas")
 	rootCmd.Flags().BoolVar(&showDetails, "show-details", false, "show extra details about each check")
