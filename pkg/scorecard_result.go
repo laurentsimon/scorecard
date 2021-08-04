@@ -106,26 +106,30 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel zapcore.Level, writ
 	//nolint
 	// https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html.
 	// We only support GitHub-supported properties:
-	// see https://docs.github.com/en/code-security/secure-coding/integrating-with-code-scanning/sarif-support-for-code-scanning#supported-sarif-output-file-properties.
+	// see https://docs.github.com/en/code-security/secure-coding/integrating-with-code-scanning/sarif-support-for-code-scanning#supported-sarif-output-file-properties,
+	// https://github.com/microsoft/sarif-tutorials.
 	type text struct {
 		Text string `json:"text"`
 	}
 
 	type region struct {
 		StartLine   int `json:"startLine"`
-		EndLine     int `json:"endLine"`
-		StartColumn int `json:"startColumn"`
-		EndColumn   int `json:"endColumn"`
+		EndLine     int `json:"endLine,omitempty"`
+		StartColumn int `json:"startColumn,omitempty"`
+		EndColumn   int `json:"endColumn,omitempty"`
 	}
 
 	type location struct {
 		PhysicalLocation struct {
-			ArtifactLocation struct {
+			ArtifactLoction struct {
 				URI        string `json:"uri"`
 				URIBasedID string `json:"uriBaseId"`
 				Region     region `json:"region"`
 			} `json:"artifactLocation"`
 		} `json:"physicalLocation"`
+		// Logical location: https://github.com/microsoft/sarif-tutorials/blob/main/docs/2-Basics.md#the-locations-array
+		// https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html#_Toc16012457.
+		// Not supported by GitHub, but possibly useful.
 	}
 
 	type partialFingerprints map[string]string
@@ -141,6 +145,7 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel zapcore.Level, writ
 	type rule struct {
 		ID            string        `json:"id"`
 		Name          string        `json:"name"`
+		HelpUri       string        `yaml:"helpUri"`
 		ShortDesc     text          `json:"shortDescription"`
 		FullDesc      text          `json:"fullDescription"`
 		DefaultConfig defaultConfig `json:"defaultConfiguration"`
@@ -148,9 +153,10 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel zapcore.Level, writ
 	}
 
 	type driver struct {
-		Name       string `json:"name"`
-		SemVersion string `json:"semanticVersion"`
-		Rules      []rule `json:"rules"`
+		Name           string `json:"name"`
+		InformationUri string `yaml:"informationUri"`
+		SemVersion     string `json:"semanticVersion"`
+		Rules          []rule `json:"rules"`
 	}
 
 	type tool struct {
@@ -171,7 +177,8 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel zapcore.Level, writ
 		AutomationDetails struct {
 			ID string `json:"id"`
 		} `json:"automationDetails"`
-		Results []result
+		Artifacts string `yaml:"artifacts"` // TODO: https://github.com/microsoft/sarif-tutorials/blob/main/docs/1-Introduction.md#simple-example
+		Results   []result
 	}
 
 	type sarif210 struct {
@@ -187,9 +194,10 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel zapcore.Level, writ
 			run{
 				Tool: tool{
 					Driver: driver{
-						Name:       "Scorecard",
-						SemVersion: "1.2.3",
-						Rules:      make([]rule, 1),
+						Name:           "Scorecard",
+						InformationUri: "our url on github",
+						SemVersion:     "1.2.3",
+						Rules:          make([]rule, 0),
 					},
 				},
 			},
@@ -202,22 +210,34 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel zapcore.Level, writ
 			Name:      check.Name,
 			ShortDesc: text{Text: "short decs"},
 			FullDesc:  text{Text: "long decs"},
+			HelpUri:   "our url to the check",
 			DefaultConfig: defaultConfig{
-				Level: "high-risk", // TODO: auto-generate
+				Level: "high-risk", // TODO: auto-generate frm yaml file
 			},
 			Properties: properties{
 				Tags:      []string{"security", "scorecard", "slsa1"},
-				Precision: "very-high", // TODO: generate automatically
+				Precision: "very-high", // TODO: generate automatically, from yaml file?
 			},
 		}
 		r := result{
-			RuleID:    "abcdefghi",
-			Level:     "high-risk",
+			RuleID: "abcdefghi",
+			// https://github.com/microsoft/sarif-tutorials/blob/main/docs/2-Basics.md#level
+			Level:     "warning",
 			RuleIndex: i,
 			Message:   text{Text: check.Reason},
 		}
 		// TODO: ierate over details
-		locs := []location{}
+		locs := []location{
+			PhysicalLocation: {},
+		}
+
+		// PhysicalLocation struct {
+		// 	ArtifactLocation struct {
+		// 		URI        string `json:"uri"`
+		// 		URIBasedID string `json:"uriBaseId"`
+		// 		Region     region `json:"region"`
+		// 	} `json:"artifactLocation"`
+		// } `json:"physicalLocation"`
 		/*
 			RuleID              string              `json:"ruleId"`
 			Level               string              `json:"level"` // Optional.
