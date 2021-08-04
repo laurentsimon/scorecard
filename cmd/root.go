@@ -68,6 +68,13 @@ or ./scorecard --{npm,pypi,rubgems}=<package_name> [--checks=check1,...] [--show
 	Short: "Security Scorecards",
 	Long:  "A program that shows security scorecard for an open source software.",
 	Run: func(cmd *cobra.Command, args []string) {
+		// UPGRADEv3: remove.
+		var v3 bool
+		if _, v3 = os.LookupEnv("SCORECARD_V3"); v3 {
+			//nolint
+			fmt.Println("**** Using SCORECARD_V3 code ***** \n")
+		}
+
 		cfg := zap.NewProductionConfig()
 		cfg.Level.SetLevel(*logLevel)
 		logger, err := cfg.Build()
@@ -165,6 +172,9 @@ or ./scorecard --{npm,pypi,rubgems}=<package_name> [--checks=check1,...] [--show
 		case formatCsv:
 			err = repoResult.AsCSV(showDetails, *logLevel, os.Stdout)
 		case formatSarif:
+			if !v3 {
+				log.Fatalf("sarif not supported yet")
+			}
 			err = repoResult.AsSARIF(showDetails, *logLevel, os.Stdout)
 		case formatHtml:
 			err = repoResult.AsHTML(showDetails, *logLevel, os.Stdout)

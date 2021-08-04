@@ -63,6 +63,38 @@ func (l *logger) Debug(desc string, args ...interface{}) {
 	l.messages2 = append(l.messages2, cd)
 }
 
+// UPGRADEv3: rename.
+type logger3 struct {
+	messages3 []CheckDetail3
+}
+
+func (l *logger3) Info(pathfn string, ln int, desc string, args ...interface{}) {
+	cd := CheckDetail3{
+		Type: DetailInfo,
+		Path: pathfn, Line: ln,
+		Msg: fmt.Sprintf(desc, args...),
+	}
+	l.messages3 = append(l.messages3, cd)
+}
+
+func (l *logger3) Warn(pathfn string, ln int, desc string, args ...interface{}) {
+	cd := CheckDetail3{
+		Type: DetailWarn,
+		Path: pathfn, Line: ln,
+		Msg: fmt.Sprintf(desc, args...),
+	}
+	l.messages3 = append(l.messages3, cd)
+}
+
+func (l *logger3) Debug(pathfn string, ln int, desc string, args ...interface{}) {
+	cd := CheckDetail3{
+		Type: DetailDebug,
+		Path: pathfn, Line: ln,
+		Msg: fmt.Sprintf(desc, args...),
+	}
+	l.messages3 = append(l.messages3, cd)
+}
+
 func logStats(ctx context.Context, startTime time.Time, result *CheckResult) error {
 	runTimeInSecs := time.Now().Unix() - startTime.Unix()
 	opencensusstats.Record(ctx, stats.CheckRuntimeInSec.M(runTimeInSecs))
@@ -88,11 +120,14 @@ func (r *Runner) Run(ctx context.Context, f CheckFn) CheckResult {
 
 	var res CheckResult
 	var l logger
+	var l3 logger3
 	for retriesRemaining := checkRetries; retriesRemaining > 0; retriesRemaining-- {
 		checkRequest := r.CheckRequest
 		checkRequest.Ctx = ctx
 		l = logger{}
+		l3 = logger3{}
 		checkRequest.Dlogger = &l
+		checkRequest.Dlogger3 = &l3
 		res = f(&checkRequest)
 		if res.Error2 != nil && errors.Is(res.Error2, sce.ErrRepoUnreachable) {
 			checkRequest.Dlogger.Warn("%v", res.Error2)
@@ -104,6 +139,7 @@ func (r *Runner) Run(ctx context.Context, f CheckFn) CheckResult {
 	for _, d := range l.messages2 {
 		res.Details = append(res.Details, d.Msg)
 	}
+	res.Details3 = l3.messages3
 
 	if err := logStats(ctx, startTime, &res); err != nil {
 		panic(err)

@@ -32,5 +32,7 @@ type CheckRequest struct {
 	HTTPClient  *http.Client
 	RepoClient  clients.RepoClient
 	Dlogger     DetailLogger
+	// UPGRADEv3: rename.
+	Dlogger3    DetailLogger3
 	Owner, Repo string
 }

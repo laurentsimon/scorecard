@@ -46,7 +46,16 @@ const (
 //nolint:govet
 type CheckDetail struct {
 	Type DetailType // Any of DetailWarn, DetailInfo, DetailDebug.
-	Msg  string     // A short string explaining why the details was recorded/logged..
+	Msg  string     // A short string explaining why the details was recorded/logged.
+}
+
+// UPGRADEv3: rename to DetailLogger.
+// CheckDetail3 contains information for each detail.
+type CheckDetail3 struct {
+	Type DetailType // Any of DetailWarn, DetailInfo, DetailDebug.
+	Msg  string     // A short string explaining why the details was recorded/logged.
+	Line int        // Line of the file.
+	Path string     // Fullpath to the file
 }
 
 // DetailLogger logs map to CheckDetail struct.
@@ -54,6 +63,14 @@ type DetailLogger interface {
 	Info(desc string, args ...interface{})
 	Warn(desc string, args ...interface{})
 	Debug(desc string, args ...interface{})
+}
+
+// UPGRADEv3: rename to DetailLogger.
+// DetailLogger3 logs map to CheckDetail struct.
+type DetailLogger3 interface {
+	Info(pathfn string, line int, desc string, args ...interface{})
+	Warn(pathfn string, line int, desc string, args ...interface{})
+	Debug(pathfn string, line int, desc string, args ...interface{})
 }
 
 //nolint
@@ -80,6 +97,10 @@ type CheckResult struct {
 	Details2 []CheckDetail `json:"-"` // Details of tests and sub-checks
 	Score    int           `json:"-"` // {[-1,0...10], -1 = Inconclusive}
 	Reason   string        `json:"-"` // A sentence describing the check result (score, etc)
+
+	// UPGRADEv3: add support or lines and file names for sarif format.
+	// Will be renamed tp CheckDetail or CheckDetail2.
+	Details3 []CheckDetail3 `json:"-"`
 }
 
 // CreateProportionalScore creates a proportional score.

@@ -37,7 +37,7 @@ func init() {
 // BinaryArtifacts  will check the repository if it contains binary artifacts.
 func BinaryArtifacts(c *checker.CheckRequest) checker.CheckResult {
 	var binFound bool
-	err := CheckFilesContent("*", false, c, checkBinaryFileContent, &binFound)
+	err := CheckFilesContent3("*", false, c, checkBinaryFileContent, &binFound)
 	if err != nil {
 		return checker.CreateRuntimeErrorResult(CheckBinaryArtifacts, err)
 	}
@@ -48,8 +48,9 @@ func BinaryArtifacts(c *checker.CheckRequest) checker.CheckResult {
 	return checker.CreateMaxScoreResult(CheckBinaryArtifacts, "no binaries found in the repo")
 }
 
+// UPGRADEv3: rename logger.
 func checkBinaryFileContent(path string, content []byte,
-	dl checker.DetailLogger, data FileCbData) (bool, error) {
+	dl checker.DetailLogger3, data FileCbData) (bool, error) {
 	pfound := FileGetCbDataAsBoolPointer(data)
 	binaryFileTypes := map[string]bool{
 		"crx":     true,
@@ -96,12 +97,12 @@ func checkBinaryFileContent(path string, content []byte,
 	}
 
 	if _, ok := binaryFileTypes[t.Extension]; ok {
-		dl.Warn("binary detected: %s", path)
+		dl.Warn(path, -1, "binary detected")
 		*pfound = true
 		return true, nil
 	} else if _, ok := binaryFileTypes[strings.ReplaceAll(filepath.Ext(path), ".", "")]; ok {
 		// Falling back to file based extension.
-		dl.Warn("binary detected: %s", path)
+		dl.Warn(path, -1, "binary detected")
 		*pfound = true
 		return true, nil
 	}

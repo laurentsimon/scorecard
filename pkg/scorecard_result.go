@@ -130,26 +130,31 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel zapcore.Level, writ
 
 	type partialFingerprints map[string]string
 
+	type defaultConfig struct {
+		Level string `json:"level"`
+	}
+
+	type properties struct {
+		Tags      []string `json:"tags"`
+		Precision string   `json:"precision"`
+	}
 	type rule struct {
-		ID            string `json:"id"`
-		Name          string `json:"name"`
-		ShortDesc     text   `json:"shortDescription"`
-		FullDesc      text   `json:"fullDescription"`
-		DefaultConfig struct {
-			Level string `json:"level"`
-		} `json:"defaultConfiguration"`
-		Properties struct {
-			Tags      []string `json:"tags"`
-			Precision string   `json:"precision"`
-		} `json:"properties"`
+		ID            string        `json:"id"`
+		Name          string        `json:"name"`
+		ShortDesc     text          `json:"shortDescription"`
+		FullDesc      text          `json:"fullDescription"`
+		DefaultConfig defaultConfig `json:"defaultConfiguration"`
+		Properties    properties    `json:"properties"`
+	}
+
+	type driver struct {
+		Name       string `json:"name"`
+		SemVersion string `json:"semanticVersion"`
+		Rules      []rule `json:"rules"`
 	}
 
 	type tool struct {
-		Driver struct {
-			Name       string `json:"name"`
-			SemVersion string `json:"semanticVersion"`
-			Rules      []rule `json:"rules"`
-		} `json:"driver"`
+		Driver driver `json:"driver"`
 	}
 
 	type result struct {
@@ -174,6 +179,56 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel zapcore.Level, writ
 		Version string `json:"version"`
 		Runs    []run  `json:"runs"`
 	}
+
+	sarif := sarif210{
+		Schema:  "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+		Version: "2.1.0",
+		Runs: []run{
+			run{
+				Tool: tool{
+					Driver: driver{
+						Name:       "Scorecard",
+						SemVersion: "1.2.3",
+						Rules:      make([]rule, 1),
+					},
+				},
+			},
+		},
+	}
+
+	for i, check := range r.Checks {
+		rule := rule{
+			ID:        "abcdefghi", // TODO: md5(check.Name),
+			Name:      check.Name,
+			ShortDesc: text{Text: "short decs"},
+			FullDesc:  text{Text: "long decs"},
+			DefaultConfig: defaultConfig{
+				Level: "high-risk", // TODO: auto-generate
+			},
+			Properties: properties{
+				Tags:      []string{"security", "scorecard", "slsa1"},
+				Precision: "very-high", // TODO: generate automatically
+			},
+		}
+		r := result{
+			RuleID:    "abcdefghi",
+			Level:     "high-risk",
+			RuleIndex: i,
+			Message:   text{Text: check.Reason},
+		}
+		// TODO: ierate over details
+		locs := []location{}
+		/*
+			RuleID              string              `json:"ruleId"`
+			Level               string              `json:"level"` // Optional.
+			RuleIndex           int                 `json:"ruleIndex"`
+			Message             text                `json:"message"`
+			Locations           []location          `json:"locations"`
+			RelatedLocations    []location          `json:"relatedLocations"`
+			PartialFingerprints partialFingerprints `json:"partialFingerprints"`
+		*/
+	}
+
 	return nil
 }
 
@@ -208,7 +263,15 @@ func (r *ScorecardResult) AsString(showDetails bool, logLevel zapcore.Level, wri
 		x[1] = row.Reason
 		x[2] = row.Name
 		if showDetails {
-			details, show := detailsToString(row.Details2, logLevel)
+			// UPGRADEv3: remove.
+			var details string
+			var show bool
+			if len(row.Details3) > 0 {
+				details, show = detailsToString3(row.Details3, logLevel)
+			} else {
+				details, show = detailsToString(row.Details2, logLevel)
+			}
+
 			if show {
 				x[3] = details
 			}
@@ -237,6 +300,26 @@ func (r *ScorecardResult) AsString(showDetails bool, logLevel zapcore.Level, wri
 	table.Render()
 
 	return nil
+}
+
+// UPGRADEv3: rename.
+func detailsToString3(details []checker.CheckDetail3, logLevel zapcore.Level) (string, bool) {
+	var sa []string
+	for _, v := range details {
+		if v.Type == checker.DetailDebug && logLevel != zapcore.DebugLevel {
+			continue
+		}
+		switch {
+		case v.Line != -1:
+			sa = append(sa, fmt.Sprintf("%s: %s: %s:%d", typeToString(v.Type), v.Msg, v.Path, v.Line))
+		default:
+			if v.Path == "" {
+				panic("fix it")
+			}
+			sa = append(sa, fmt.Sprintf("%s: %s: %s", typeToString(v.Type), v.Msg, v.Path))
+		}
+	}
+	return strings.Join(sa, "\n"), len(sa) > 0
 }
 
 func detailsToString(details []checker.CheckDetail, logLevel zapcore.Level) (string, bool) {
