@@ -306,6 +306,18 @@ func detailsToRelatedLocations(details []checker.CheckDetail3) []relatedLocation
 	return rlocs
 }
 
+// This is too coarse.
+func scoreToLevel(score int) string {
+	switch score {
+	default:
+		return "warning"
+	case checker.MaxResultScore:
+		return "note"
+	case checker.MinResultScore:
+		return "error"
+	}
+}
+
 // AsSARIF outputs ScorecardResult in SARIF 2.1.0 format.
 func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel zapcore.Level, writer io.Writer) error {
 	//nolint
@@ -365,7 +377,7 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel zapcore.Level, writ
 			FullDesc:  text{Text: "long decs"},
 			HelpURI:   fmt.Sprintf("https://github.com/ossf/scorecard/blob/main/docs/checks.md#%s", strings.ToLower(check.Name)),
 			DefaultConfig: defaultConfig{
-				Level: "error",
+				Level: scoreToLevel(check.Score),
 			},
 			Properties: properties{
 				Tags:      []string{"security", "scorecard", "slsa1", "gosspl:dependency:L1"},

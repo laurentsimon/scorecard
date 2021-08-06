@@ -28,7 +28,7 @@ import (
 var _ = Describe("E2E TEST:Fuzzing", func() {
 	Context("E2E TEST:Validating use of fuzzing tools", func() {
 		It("Should return use of fuzzing tools", func() {
-			dl := scut.TestDetailLogger{}
+			dl := scut.TestDetailLogger3{}
 			req := checker.CheckRequest{
 				Ctx:         context.Background(),
 				Client:      ghClient,
@@ -37,7 +37,7 @@ var _ = Describe("E2E TEST:Fuzzing", func() {
 				Owner:       "tensorflow",
 				Repo:        "tensorflow",
 				GraphClient: graphClient,
-				Dlogger:     &dl,
+				Dlogger3:    &dl,
 			}
 			expected := scut.TestReturn{
 				Errors:        nil,
@@ -52,7 +52,34 @@ var _ = Describe("E2E TEST:Fuzzing", func() {
 			Expect(result.Error).Should(BeNil())
 			Expect(result.Pass).Should(BeTrue())
 			// New version.
-			Expect(scut.ValidateTestReturn(nil, "use fuzzing", &expected, &result, &dl)).Should(BeTrue())
+			Expect(scut.ValidateTestReturn3(nil, "use fuzzing", &expected, &result, &dl)).Should(BeTrue())
+		})
+		It("Should return use no use of fuzzing tools", func() {
+			dl := scut.TestDetailLogger3{}
+			req := checker.CheckRequest{
+				Ctx:         context.Background(),
+				Client:      ghClient,
+				HTTPClient:  httpClient,
+				RepoClient:  nil,
+				Owner:       "ossf-tests",
+				Repo:        "scorecard-check-token-permissions-e2e",
+				GraphClient: graphClient,
+				Dlogger3:    &dl,
+			}
+			expected := scut.TestReturn{
+				Errors:        nil,
+				Score:         checker.MinResultScore,
+				NumberOfWarn:  0,
+				NumberOfInfo:  0,
+				NumberOfDebug: 1,
+			}
+			result := checks.Fuzzing(&req)
+			// UPGRADEv2: to remove.
+			// Old version.
+			Expect(result.Error).Should(BeNil())
+			Expect(result.Pass).Should(BeFalse())
+			// New version.
+			Expect(scut.ValidateTestReturn3(nil, "no use of fuzzing", &expected, &result, &dl)).Should(BeTrue())
 		})
 	})
 })

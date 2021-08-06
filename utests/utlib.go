@@ -44,9 +44,35 @@ func validateDetailTypes(messages []checker.CheckDetail, nw, ni, nd int) bool {
 		end == nd
 }
 
+func validateDetailTypes3(messages []checker.CheckDetail3, nw, ni, nd int) bool {
+	enw := 0
+	eni := 0
+	end := 0
+	for _, v := range messages {
+		switch v.Type {
+		default:
+			panic(fmt.Sprintf("invalid type %v", v.Type))
+		case checker.DetailInfo:
+			eni++
+		case checker.DetailDebug:
+			end++
+		case checker.DetailWarn:
+			enw++
+		}
+	}
+	return enw == nw &&
+		eni == ni &&
+		end == nd
+}
+
 // TestDetailLogger implements `checker.DetailLogger`.
 type TestDetailLogger struct {
 	messages []checker.CheckDetail
+}
+
+// TestDetailLogger3 implements `checker.DetailLogger3`.
+type TestDetailLogger3 struct {
+	messages []checker.CheckDetail3
 }
 
 // TestReturn encapsulates expected CheckResult return values.
@@ -73,6 +99,33 @@ func (l *TestDetailLogger) Warn(desc string, args ...interface{}) {
 // Debug implements DetailLogger.Debug.
 func (l *TestDetailLogger) Debug(desc string, args ...interface{}) {
 	cd := checker.CheckDetail{Type: checker.DetailDebug, Msg: fmt.Sprintf(desc, args...)}
+	l.messages = append(l.messages, cd)
+}
+
+// Info implements DetailLogger3.Info.
+func (l *TestDetailLogger3) Info(msg *checker.LogMessage) {
+	cd := checker.CheckDetail3{
+		Type: checker.DetailInfo,
+		Msg:  *msg,
+	}
+	l.messages = append(l.messages, cd)
+}
+
+// Warn implements DetailLogger3.Warn.
+func (l *TestDetailLogger3) Warn(msg *checker.LogMessage) {
+	cd := checker.CheckDetail3{
+		Type: checker.DetailWarn,
+		Msg:  *msg,
+	}
+	l.messages = append(l.messages, cd)
+}
+
+// Debug implements DetailLogger3.Debug.
+func (l *TestDetailLogger3) Debug(msg *checker.LogMessage) {
+	cd := checker.CheckDetail3{
+		Type: checker.DetailDebug,
+		Msg:  *msg,
+	}
 	l.messages = append(l.messages, cd)
 }
 
@@ -108,4 +161,38 @@ func ValidateTestValues(t *testing.T, name string, te *TestReturn,
 func ValidateTestReturn(t *testing.T, name string, te *TestReturn,
 	tr *checker.CheckResult, dl *TestDetailLogger) bool {
 	return ValidateTestValues(t, name, te, tr.Score, tr.Error2, dl)
+}
+
+// ValidateTestValues3 validates returned score and log values.
+// nolint: thelper
+func ValidateTestValues3(t *testing.T, name string, te *TestReturn,
+	score int, err error, dl *TestDetailLogger3) bool {
+	for _, we := range te.Errors {
+		if !errors.Is(err, we) {
+			if t != nil {
+				t.Errorf("%v: invalid error returned: %v is not of type %v",
+					name, err, we)
+			}
+			fmt.Printf("%v: invalid error returned: %v is not of type %v",
+				name, err, we)
+			return false
+		}
+	}
+	if score != te.Score ||
+		!validateDetailTypes3(dl.messages, te.NumberOfWarn,
+			te.NumberOfInfo, te.NumberOfDebug) {
+		if t != nil {
+			t.Errorf("%v: Got (score=%v) expected (%v)\n%v",
+				name, score, te.Score, dl.messages)
+		}
+		return false
+	}
+	return true
+}
+
+// ValidateTestReturn3 validates expected TestReturn with actual checker.CheckResult values.
+// nolint: thelper
+func ValidateTestReturn3(t *testing.T, name string, te *TestReturn,
+	tr *checker.CheckResult, dl *TestDetailLogger3) bool {
+	return ValidateTestValues3(t, name, te, tr.Score, tr.Error2, dl)
 }
