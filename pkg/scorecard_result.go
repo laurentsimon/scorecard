@@ -15,7 +15,9 @@
 package pkg
 
 import (
+	"crypto/md5"
 	"encoding/csv"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -101,6 +103,209 @@ func (r *ScorecardResult) AsCSV(showDetails bool, logLevel zapcore.Level, writer
 	return nil
 }
 
+type text struct {
+	Text string `json:"text,omitempty"`
+}
+
+//nolint
+type region struct {
+	StartLine   *int `json:"startLine,omitempty"`
+	EndLine     *int `json:"endLine,omitempty"`
+	StartColumn *int `json:"startColumn,omitempty"`
+	EndColumn   *int `json:"endColumn,omitempty"`
+	CharOffset  *int `json:"charOffset,omitempty"`
+	ByteOffset  *int `json:"byteOffset,omitempty"`
+	// Use pointer to omit the entire structure.
+	Snippet *text `json:"snippet,omitempty"`
+}
+
+type artifactLocation struct {
+	URI        string `json:"uri"`
+	URIBasedID string `json:"uriBaseId,omitempty"`
+}
+
+type physicalLocation struct {
+	ArtifactLocation artifactLocation `json:"artifactLocation"`
+	Region           region           `json:"region"`
+}
+
+type location struct {
+	PhysicalLocation physicalLocation `json:"physicalLocation"`
+}
+
+//nolint
+type relatedLocation struct {
+	ID               int              `json:"id"`
+	PhysicalLocation physicalLocation `json:"physicalLocation"`
+	Message          text             `json:"message"`
+}
+
+type partialFingerprints map[string]string
+
+type defaultConfig struct {
+	// "none", "note", "warning", "error",
+	// https://github.com/oasis-tcs/sarif-spec/blob/master/Schemata/sarif-schema-2.1.0.json#L1566.
+	Level string `json:"level"`
+}
+
+type properties struct {
+	Precision string   `json:"precision"`
+	Tags      []string `json:"tags"`
+}
+
+type rule struct {
+	ID            string        `json:"id"`
+	Name          string        `json:"name"`
+	HelpURI       string        `json:"helpUri"`
+	ShortDesc     text          `json:"shortDescription"`
+	FullDesc      text          `json:"fullDescription"`
+	DefaultConfig defaultConfig `json:"defaultConfiguration"`
+	Properties    properties    `json:"properties"`
+}
+
+type driver struct {
+	Name           string `json:"name"`
+	InformationURI string `json:"informationUri"`
+	SemVersion     string `json:"semanticVersion"`
+	Rules          []rule `json:"rules"`
+}
+
+type tool struct {
+	Driver driver `json:"driver"`
+}
+
+//nolint
+type result struct {
+	RuleID           string            `json:"ruleId"`
+	Level            string            `json:"level"` // Optional.
+	RuleIndex        int               `json:"ruleIndex"`
+	Message          text              `json:"message"`
+	Locations        []location        `json:"locations,omitempty"`
+	RelatedLocations []relatedLocation `json:"relatedLocations,omitempty"`
+	// Logical location: https://github.com/microsoft/sarif-tutorials/blob/main/docs/2-Basics.md#the-locations-array
+	// https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html#_Toc16012457.
+	// Not supported by GitHub, but possibly useful.
+	PartialFingerprints partialFingerprints `json:"partialFingerprints,omitempty"`
+}
+
+type automationDetails struct {
+	ID string `json:"id"`
+}
+
+type run struct {
+	Tool              tool              `json:"tool"`
+	AutomationDetails automationDetails `json:"automationDetails"`
+	// For generated files during analysis. We leave this blank.
+	Artifacts string   `json:"artifacts,omitempty"` // TODO: https://github.com/microsoft/sarif-tutorials/blob/main/docs/1-Introduction.md#simple-example
+	Results   []result `json:"results"`
+}
+
+type sarif210 struct {
+	Schema  string `json:"$schema"`
+	Version string `json:"version"`
+	Runs    []run  `json:"runs"`
+}
+
+func detailToRegion(details *checker.CheckDetail3) region {
+	var reg region
+	switch details.Msg.Type {
+	default:
+		panic("invalid")
+	case checker.FileTypeSource:
+		reg = region{
+			StartLine: &details.Msg.Offset,
+		}
+	case checker.FileTypeText:
+		reg = region{
+			CharOffset: &details.Msg.Offset,
+		}
+	case checker.FileTypeBinary:
+		reg = region{
+			ByteOffset: &details.Msg.Offset,
+		}
+	}
+	return reg
+}
+
+func detailsToLocations(details []checker.CheckDetail3) []location {
+	locs := []location{}
+
+	//nolint
+	// Populate the locations.
+	// Note https://docs.github.com/en/code-security/secure-coding/integrating-with-code-scanning/sarif-support-for-code-scanning#result-object
+	// "Only the first value of this array is used. All other values are ignored."
+	for _, d := range details {
+		if d.Type != checker.DetailWarn {
+			continue
+		}
+
+		if d.Msg.Path == "" {
+			continue
+		}
+		loc := location{
+			PhysicalLocation: physicalLocation{
+				ArtifactLocation: artifactLocation{
+					URI:        d.Msg.Path,
+					URIBasedID: "SRCROOT",
+				},
+			},
+		}
+
+		// Set the region depending on file type.
+		loc.PhysicalLocation.Region = detailToRegion(&d)
+		locs = append(locs, loc)
+	}
+
+	// No details or not locations.
+	// For GitHub to display results, we need to provide
+	// a location anyway. TODO: experiment with value.
+	detaultLine := 1
+	if len(locs) == 0 {
+		loc := location{
+			PhysicalLocation: physicalLocation{
+				ArtifactLocation: artifactLocation{
+					URI:        "README.md",
+					URIBasedID: "SRCROOT",
+				},
+				Region: region{
+					StartLine: &detaultLine,
+				},
+			},
+		}
+		locs = append(locs, loc)
+	}
+	return locs
+}
+
+func detailsToRelatedLocations(details []checker.CheckDetail3) []relatedLocation {
+	rlocs := []relatedLocation{}
+
+	//nolint
+	// Populate the locations.
+	// Note https://docs.github.com/en/code-security/secure-coding/integrating-with-code-scanning/sarif-support-for-code-scanning#result-object
+	// "Only the first value of this array is used. All other values are ignored."
+	for i, d := range details {
+		if d.Msg.RelatedPath == "" {
+			continue
+		}
+		// TODO: related and logical
+		rloc := relatedLocation{
+			ID:      i,
+			Message: text{Text: d.Msg.Text},
+			PhysicalLocation: physicalLocation{
+				ArtifactLocation: artifactLocation{
+					URI: d.Msg.RelatedPath,
+					// URIBasedID: "PROJECTROOT",
+				},
+			},
+		}
+		// Set the region depending on file type.
+		rloc.PhysicalLocation.Region = detailToRegion(&d)
+		rlocs = append(rlocs, rloc)
+	}
+	return rlocs
+}
+
 // AsSARIF outputs ScorecardResult in SARIF 2.1.0 format.
 func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel zapcore.Level, writer io.Writer) error {
 	//nolint
@@ -108,84 +313,6 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel zapcore.Level, writ
 	// We only support GitHub-supported properties:
 	// see https://docs.github.com/en/code-security/secure-coding/integrating-with-code-scanning/sarif-support-for-code-scanning#supported-sarif-output-file-properties,
 	// https://github.com/microsoft/sarif-tutorials.
-	type text struct {
-		Text string `json:"text"`
-	}
-
-	type region struct {
-		StartLine   int `json:"startLine"`
-		EndLine     int `json:"endLine,omitempty"`
-		StartColumn int `json:"startColumn,omitempty"`
-		EndColumn   int `json:"endColumn,omitempty"`
-	}
-
-	type location struct {
-		PhysicalLocation struct {
-			ArtifactLoction struct {
-				URI        string `json:"uri"`
-				URIBasedID string `json:"uriBaseId"`
-				Region     region `json:"region"`
-			} `json:"artifactLocation"`
-		} `json:"physicalLocation"`
-		// Logical location: https://github.com/microsoft/sarif-tutorials/blob/main/docs/2-Basics.md#the-locations-array
-		// https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html#_Toc16012457.
-		// Not supported by GitHub, but possibly useful.
-	}
-
-	type partialFingerprints map[string]string
-
-	type defaultConfig struct {
-		Level string `json:"level"`
-	}
-
-	type properties struct {
-		Tags      []string `json:"tags"`
-		Precision string   `json:"precision"`
-	}
-	type rule struct {
-		ID            string        `json:"id"`
-		Name          string        `json:"name"`
-		HelpUri       string        `yaml:"helpUri"`
-		ShortDesc     text          `json:"shortDescription"`
-		FullDesc      text          `json:"fullDescription"`
-		DefaultConfig defaultConfig `json:"defaultConfiguration"`
-		Properties    properties    `json:"properties"`
-	}
-
-	type driver struct {
-		Name           string `json:"name"`
-		InformationUri string `yaml:"informationUri"`
-		SemVersion     string `json:"semanticVersion"`
-		Rules          []rule `json:"rules"`
-	}
-
-	type tool struct {
-		Driver driver `json:"driver"`
-	}
-
-	type result struct {
-		RuleID              string              `json:"ruleId"`
-		Level               string              `json:"level"` // Optional.
-		RuleIndex           int                 `json:"ruleIndex"`
-		Message             text                `json:"message"`
-		Locations           []location          `json:"locations"`
-		RelatedLocations    []location          `json:"relatedLocations"`
-		PartialFingerprints partialFingerprints `json:"partialFingerprints"`
-	}
-	type run struct {
-		Tool              tool `json:"tool"`
-		AutomationDetails struct {
-			ID string `json:"id"`
-		} `json:"automationDetails"`
-		Artifacts string `yaml:"artifacts"` // TODO: https://github.com/microsoft/sarif-tutorials/blob/main/docs/1-Introduction.md#simple-example
-		Results   []result
-	}
-
-	type sarif210 struct {
-		Schema  string `json:"$schema"`
-		Version string `json:"version"`
-		Runs    []run  `json:"runs"`
-	}
 
 	sarif := sarif210{
 		Schema:  "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
@@ -195,58 +322,83 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel zapcore.Level, writ
 				Tool: tool{
 					Driver: driver{
 						Name:           "Scorecard",
-						InformationUri: "our url on github",
+						InformationURI: "https://github.com/ossf/scorecard",
 						SemVersion:     "1.2.3",
-						Rules:          make([]rule, 0),
+						Rules:          make([]rule, 1),
 					},
+				},
+				AutomationDetails: automationDetails{
+					ID: fmt.Sprintf("%v/%v/%v", "security", "scorecard", "2021-02-01-13:54:12"),
 				},
 			},
 		},
 	}
 
+	results := []result{}
+	rules := []rule{}
+	// nolint
 	for i, check := range r.Checks {
+
+		locs := detailsToLocations(check.Details3)
+		rlocs := detailsToRelatedLocations(check.Details3)
+
+		//nolint:gosec
+		m := md5.Sum([]byte(check.Name))
+		checkID := hex.EncodeToString(m[:])
+		// logicalLocs:TODO
+		// relatedLocs := []location{}
+
+		// Unclear what to use for PartialFingerprints.
+		// GitHub only uses `primaryLocationLineHash`, which is not properly defined
+		// and Appendix B of https://docs.oasis-open.org/sarif/sarif/v2.1.0/cs01/sarif-v2.1.0-cs01.html
+		// warns about using line number for fingerprints:
+		// "suppose the fingerprint were to include the line number where the result was located, and suppose
+		// that after the baseline was constructed, a developer inserted additional lines of code above that
+		// location. Then in the next run, the result would occur on a different line, the computed fingerprint
+		// would change, and the result management system would erroneously report it as a new result."
+
 		rule := rule{
-			ID:        "abcdefghi", // TODO: md5(check.Name),
-			Name:      check.Name,
+			ID:   checkID,
+			Name: check.Name,
+			// TODO: read from yaml file.
 			ShortDesc: text{Text: "short decs"},
 			FullDesc:  text{Text: "long decs"},
-			HelpUri:   "our url to the check",
+			HelpURI:   fmt.Sprintf("https://github.com/ossf/scorecard/blob/main/docs/checks.md#%s", strings.ToLower(check.Name)),
 			DefaultConfig: defaultConfig{
-				Level: "high-risk", // TODO: auto-generate frm yaml file
+				Level: "error",
 			},
 			Properties: properties{
-				Tags:      []string{"security", "scorecard", "slsa1"},
+				Tags:      []string{"security", "scorecard", "slsa1", "gosspl:dependency:L1"},
 				Precision: "very-high", // TODO: generate automatically, from yaml file?
 			},
 		}
-		r := result{
-			RuleID: "abcdefghi",
-			// https://github.com/microsoft/sarif-tutorials/blob/main/docs/2-Basics.md#level
-			Level:     "warning",
-			RuleIndex: i,
-			Message:   text{Text: check.Reason},
-		}
-		// TODO: ierate over details
-		locs := []location{
-			PhysicalLocation: {},
+
+		rules = append(rules, rule)
+
+		if len(locs) == 0 {
 		}
 
-		// PhysicalLocation struct {
-		// 	ArtifactLocation struct {
-		// 		URI        string `json:"uri"`
-		// 		URIBasedID string `json:"uriBaseId"`
-		// 		Region     region `json:"region"`
-		// 	} `json:"artifactLocation"`
-		// } `json:"physicalLocation"`
-		/*
-			RuleID              string              `json:"ruleId"`
-			Level               string              `json:"level"` // Optional.
-			RuleIndex           int                 `json:"ruleIndex"`
-			Message             text                `json:"message"`
-			Locations           []location          `json:"locations"`
-			RelatedLocations    []location          `json:"relatedLocations"`
-			PartialFingerprints partialFingerprints `json:"partialFingerprints"`
-		*/
+		r := result{
+			RuleID: checkID,
+			// https://github.com/microsoft/sarif-tutorials/blob/main/docs/2-Basics.md#level
+			Level:            "error",
+			RuleIndex:        i,
+			Message:          text{Text: check.Reason},
+			Locations:        locs,
+			RelatedLocations: rlocs,
+		}
+
+		results = append(results, r)
+	}
+
+	// TODO: check for results
+	sarif.Runs[0].Tool.Driver.Rules = rules
+	sarif.Runs[0].Results = results
+
+	encoder := json.NewEncoder(writer)
+	encoder.SetIndent("", "   ")
+	if err := encoder.Encode(sarif); err != nil {
+		panic(err.Error())
 	}
 
 	return nil
@@ -329,14 +481,10 @@ func detailsToString3(details []checker.CheckDetail3, logLevel zapcore.Level) (s
 		if v.Type == checker.DetailDebug && logLevel != zapcore.DebugLevel {
 			continue
 		}
-		switch {
-		case v.Line != -1:
-			sa = append(sa, fmt.Sprintf("%s: %s: %s:%d", typeToString(v.Type), v.Msg, v.Path, v.Line))
-		default:
-			if v.Path == "" {
-				panic("fix it")
-			}
-			sa = append(sa, fmt.Sprintf("%s: %s: %s", typeToString(v.Type), v.Msg, v.Path))
+		if v.Msg.Path != "" {
+			sa = append(sa, fmt.Sprintf("%s: %s: %s:%d", typeToString(v.Type), v.Msg.Text, v.Msg.Path, v.Msg.Offset))
+		} else {
+			sa = append(sa, fmt.Sprintf("%s: %s: %s", typeToString(v.Type), v.Msg.Text, v.Msg.Path))
 		}
 	}
 	return strings.Join(sa, "\n"), len(sa) > 0

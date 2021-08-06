@@ -68,29 +68,26 @@ type logger3 struct {
 	messages3 []CheckDetail3
 }
 
-func (l *logger3) Info(pathfn string, ln int, desc string, args ...interface{}) {
+func (l *logger3) Info(msg *LogMessage) {
 	cd := CheckDetail3{
 		Type: DetailInfo,
-		Path: pathfn, Line: ln,
-		Msg: fmt.Sprintf(desc, args...),
+		Msg:  *msg,
 	}
 	l.messages3 = append(l.messages3, cd)
 }
 
-func (l *logger3) Warn(pathfn string, ln int, desc string, args ...interface{}) {
+func (l *logger3) Warn(msg *LogMessage) {
 	cd := CheckDetail3{
 		Type: DetailWarn,
-		Path: pathfn, Line: ln,
-		Msg: fmt.Sprintf(desc, args...),
+		Msg:  *msg,
 	}
 	l.messages3 = append(l.messages3, cd)
 }
 
-func (l *logger3) Debug(pathfn string, ln int, desc string, args ...interface{}) {
+func (l *logger3) Debug(msg *LogMessage) {
 	cd := CheckDetail3{
 		Type: DetailDebug,
-		Path: pathfn, Line: ln,
-		Msg: fmt.Sprintf(desc, args...),
+		Msg:  *msg,
 	}
 	l.messages3 = append(l.messages3, cd)
 }

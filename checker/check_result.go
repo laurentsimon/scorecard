@@ -49,13 +49,35 @@ type CheckDetail struct {
 	Msg  string     // A short string explaining why the details was recorded/logged.
 }
 
-// UPGRADEv3: rename to DetailLogger.
+// FileType is the type of a file.
+type FileType int
+
+const (
+	// FileTypeSource is for source code.
+	FileTypeSource FileType = iota
+	// FileTypeBinary is fir binary files.
+	FileTypeBinary
+	// FileTypeText is text.
+	FileTypeText
+)
+
+// LogMessage is a structure to encapsulate detail's information.
+// This allows updaing the definition easily.
+//nolint
+type LogMessage struct {
+	Text        string   // A short string explaining why the details was recorded/logged.
+	Path        string   // Fullpath to the file.
+	RelatedPath string   // Path related to the detail. Must be full URL.
+	Type        FileType // Type of file. (for Path and RellatedPath).
+	Offset      int      // Offset in the file of Path (line for source/text files).
+	Snippet     string   // Snippet of code
+}
+
 // CheckDetail3 contains information for each detail.
+// UPGRADEv3: rename to DetailLogger.
 type CheckDetail3 struct {
+	Msg  LogMessage
 	Type DetailType // Any of DetailWarn, DetailInfo, DetailDebug.
-	Msg  string     // A short string explaining why the details was recorded/logged.
-	Line int        // Line of the file.
-	Path string     // Fullpath to the file
 }
 
 // DetailLogger logs map to CheckDetail struct.
@@ -65,12 +87,12 @@ type DetailLogger interface {
 	Debug(desc string, args ...interface{})
 }
 
-// UPGRADEv3: rename to DetailLogger.
 // DetailLogger3 logs map to CheckDetail struct.
+// UPGRADEv3: rename to DetailLogger.
 type DetailLogger3 interface {
-	Info(pathfn string, line int, desc string, args ...interface{})
-	Warn(pathfn string, line int, desc string, args ...interface{})
-	Debug(pathfn string, line int, desc string, args ...interface{})
+	Info(msg *LogMessage)
+	Warn(msg *LogMessage)
+	Debug(msg *LogMessage)
 }
 
 //nolint
