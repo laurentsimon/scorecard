@@ -53,24 +53,25 @@ type CheckDetail struct {
 type FileType int
 
 const (
+	// FileTypeNone is a default, non-file, e.g. for REST APIs.
+	FileTypeNone FileType = iota
 	// FileTypeSource is for source code.
-	FileTypeSource FileType = iota
+	FileTypeSource
 	// FileTypeBinary is fir binary files.
 	FileTypeBinary
 	// FileTypeText is text.
 	FileTypeText
 )
 
-// LogMessage is a structure to encapsulate detail's information.
-// This allows updaing the definition easily.
+// LogMessage is a structure that encapsulates detail's information.
+// This allows updating the definition easily.
 //nolint
 type LogMessage struct {
-	Text        string   // A short string explaining why the details was recorded/logged.
-	Path        string   // Fullpath to the file.
-	RelatedPath string   // Path related to the detail. Must be full URL.
-	Type        FileType // Type of file. (for Path and RellatedPath).
-	Offset      int      // Offset in the file of Path (line for source/text files).
-	Snippet     string   // Snippet of code
+	Text    string   // A short string explaining why the detail was recorded/logged.
+	Path    string   // Fullpath to the file.
+	Type    FileType // Type of file.
+	Offset  int      // Offset in the file of Path (line for source/text files).
+	Snippet string   // Snippet of code
 }
 
 // CheckDetail3 contains information for each detail.
