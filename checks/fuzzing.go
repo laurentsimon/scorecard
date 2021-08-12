@@ -47,11 +47,11 @@ func Fuzzing(c *checker.CheckRequest) checker.CheckResult {
 	}
 
 	// UPGRADEv3: rename.
-	c.Dlogger3.Debug(&checker.LogMessage{
-		RelatedPath: "https://github.com/google/oss-fuzz/tree/master/projects",
-		Type:        checker.FileTypeSource,
-		Offset:      1,
-		Text:        "repo not present in list of projects",
+	c.Dlogger.Debug3(&checker.LogMessage{
+		Path:   "https://github.com/google/oss-fuzz/tree/master/projects",
+		Type:   checker.FileTypeURL,
+		Offset: 1,
+		Text:   "repo not present in list of projects",
 	})
 	return checker.CreateMinScoreResult(CheckFuzzing, "project is not fuzzed in OSS-Fuzz")
 }

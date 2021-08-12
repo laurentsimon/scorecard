@@ -42,13 +42,6 @@ const (
 	DetailDebug
 )
 
-// CheckDetail contains information for each detail.
-//nolint:govet
-type CheckDetail struct {
-	Type DetailType // Any of DetailWarn, DetailInfo, DetailDebug.
-	Msg  string     // A short string explaining why the details was recorded/logged.
-}
-
 // FileType is the type of a file.
 type FileType int
 
@@ -61,6 +54,8 @@ const (
 	FileTypeBinary
 	// FileTypeText is text.
 	FileTypeText
+	// FileTypeURL for URLs.
+	FileTypeURL
 )
 
 // LogMessage is a structure that encapsulates detail's information.
@@ -72,11 +67,13 @@ type LogMessage struct {
 	Type    FileType // Type of file.
 	Offset  int      // Offset in the file of Path (line for source/text files).
 	Snippet string   // Snippet of code
+	// UPGRADEv3: to remove.
+	Version int // `3` to indicate the detail was logged using new structure.
 }
 
-// CheckDetail3 contains information for each detail.
-// UPGRADEv3: rename to DetailLogger.
-type CheckDetail3 struct {
+// CheckDetail contains information for each detail.
+//nolint:govet
+type CheckDetail struct {
 	Msg  LogMessage
 	Type DetailType // Any of DetailWarn, DetailInfo, DetailDebug.
 }
@@ -86,14 +83,12 @@ type DetailLogger interface {
 	Info(desc string, args ...interface{})
 	Warn(desc string, args ...interface{})
 	Debug(desc string, args ...interface{})
-}
 
-// DetailLogger3 logs map to CheckDetail struct.
-// UPGRADEv3: rename to DetailLogger.
-type DetailLogger3 interface {
-	Info(msg *LogMessage)
-	Warn(msg *LogMessage)
-	Debug(msg *LogMessage)
+	// UPGRADEv3: to rename.
+	// Functions to use for moving to SARIF format.
+	Info3(msg *LogMessage)
+	Warn3(msg *LogMessage)
+	Debug3(msg *LogMessage)
 }
 
 //nolint
@@ -120,10 +115,6 @@ type CheckResult struct {
 	Details2 []CheckDetail `json:"-"` // Details of tests and sub-checks
 	Score    int           `json:"-"` // {[-1,0...10], -1 = Inconclusive}
 	Reason   string        `json:"-"` // A sentence describing the check result (score, etc)
-
-	// UPGRADEv3: add support or lines and file names for sarif format.
-	// Will be renamed tp CheckDetail or CheckDetail2.
-	Details3 []CheckDetail3 `json:"-"`
 }
 
 // CreateProportionalScore creates a proportional score.

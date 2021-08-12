@@ -117,57 +117,6 @@ func CheckFilesContent(shellPathFnPattern string,
 	return nil
 }
 
-// UPGRADEv3: rename.
-//nolint
-type FileContentCb3 func(path string, content []byte,
-	dl checker.DetailLogger3, data FileCbData) (bool, error)
-
-//nolint
-func CheckFilesContent3(shellPathFnPattern string,
-	caseSensitive bool,
-	c *checker.CheckRequest,
-	onFileContent FileContentCb3,
-	data FileCbData,
-) error {
-	predicate := func(filepath string) (bool, error) {
-		// Filter out Scorecard's own test files.
-		if isScorecardTestFile(c.Owner, c.Repo, filepath) {
-			return false, nil
-		}
-		// Filter out files based on path/names using the pattern.
-		b, err := isMatchingPath(shellPathFnPattern, filepath, caseSensitive)
-		if err != nil {
-			return false, err
-		}
-		return b, nil
-	}
-
-	matchedFiles, err := c.RepoClient.ListFiles(predicate)
-	if err != nil {
-		// nolint: wrapcheck
-		return err
-	}
-
-	for _, file := range matchedFiles {
-		content, err := c.RepoClient.GetFileContent(file)
-		if err != nil {
-			//nolint
-			return err
-		}
-
-		continueIter, err := onFileContent(file, content, c.Dlogger3, data)
-		if err != nil {
-			return err
-		}
-
-		if !continueIter {
-			break
-		}
-	}
-
-	return nil
-}
-
 // FileCb represents a callback fn.
 type FileCb func(path string,
 	dl checker.DetailLogger, data FileCbData) (bool, error)
