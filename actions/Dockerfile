@@ -18,7 +18,7 @@ WORKDIR /src
 
 RUN apt-get update -y &&\
     apt-get install -y jq
-ADD actions/entrypoint.sh entrypoint.sh
+ADD entrypoint.sh entrypoint.sh
 RUN chmod +x entrypoint.sh
 
 # ENV CGO_ENABLED=0
