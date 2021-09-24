@@ -45,6 +45,7 @@ echo "-- scorecard now!!"
 #./scorecard --checks Code-Review --format sarif | jq '.'
 #curl www.google.com
 # TODO: check saif file and policy files.
+ls "$GITHUB_WORKSPACE"
 /src/scorecard --repo="$GITHUB_REPOSITORY" --format sarif --show-details --checks=Token-Permissions --policy="$SCORECARD_POLICY_FILE" > "$SCORECARD_SARIF_FILE"
 jq '.' "$SCORECARD_SARIF_FILE"
 echo "end scoecard"
