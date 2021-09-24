@@ -21,6 +21,7 @@ RUN apt-get update -y &&\
 ADD entrypoint.sh entrypoint.sh
 RUN chmod +x entrypoint.sh
 
+RUN env
 
 ENV CGO_ENABLED=0
 COPY go.* ./
