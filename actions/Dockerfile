@@ -21,10 +21,10 @@ RUN apt-get update -y &&\
 ADD actions/entrypoint.sh entrypoint.sh
 RUN chmod +x entrypoint.sh
 
-ENV CGO_ENABLED=0
-COPY go.* ./
-RUN go mod download
-COPY scorecard ./
+# ENV CGO_ENABLED=0
+# COPY go.* ./
+# RUN go mod download
+# COPY scorecard ./
 ENTRYPOINT ["/src/entrypoint.sh"]
 
 # FROM golang@sha256:3c4de86eec9cbc619cdd72424abd88326ffcf5d813a8338a7743c55e5898734f AS base
