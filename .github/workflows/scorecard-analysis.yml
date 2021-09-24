@@ -1,5 +1,7 @@
 name: A workflow for my scorecard analysis
-on: push
+on: 
+  push:
+    branches: [feat/action]
 
 permissions: read-all
 

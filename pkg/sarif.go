@@ -359,8 +359,8 @@ func createSARIFRule(checkName, checkID, descURL, longDesc, shortDesc string,
 		ID:   checkID,
 		Name: checkName,
 		// TODO: verify this works on GitHub.
-		ShortDesc: text{Text: textToHTML(shortDesc)},
-		FullDesc:  text{Text: textToHTML(longDesc)},
+		ShortDesc: text{Text: shortDesc},
+		FullDesc:  text{Text: longDesc},
 		HelpURI:   descURL,
 		Help: help{
 			Text:     longDesc,

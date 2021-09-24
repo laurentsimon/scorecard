@@ -1,8 +1,35 @@
 version: 1
 policies:
   Token-Permissions:
-      score: 3
+      score: 10
       mode: enforced
   Branch-Protection:
-      score: 9
+      score: 10
+      mode: enforced
+  Code-Review:
+      score: 10
+      mode: enforced
+  Pinned-Dependencies:
+      score: 10
+      mode: enforced
+  Security-Policy:
+      score: 10
+      mode: enforced
+  SAST:
+      score: 10
+      mode: enforced
+  Contributors:
+      score: 10
+      mode: enforced
+  Packaging:
+      score: 10
+      mode: enforced
+  Binary-Artifacts:
+      score: 10
+      mode: enforced
+  Signed-Releases:
+      score: 10
+      mode: enforced
+  Dependency-Update-Tool:
+      score: 10
       mode: enforced
