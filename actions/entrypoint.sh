@@ -24,20 +24,19 @@ echo "--"
 ls
 
 # echo "--"
-# sh -c "echo SCORECARD_ENV = $SCORECARD_ENV"
+sh -c "echo SCORECARD_ENV = $SCORECARD_ENV"
 # id
-# sh -c "echo github event is: $GITHUB_EVENT_NAME"
-# sh -c "echo sarif file: $INPUT_SARIF_FILE"
-# sh -c "echo policy file: $INPUT_POLICY_FILE"
+sh -c "echo github event is: $GITHUB_EVENT_NAME"
+sh -c "echo sarif file: $INPUT_SARIF_FILE"
+sh -c "echo policy file: $INPUT_POLICY_FILE"
 # echo "workspace content:" && ls "$GITHUB_WORKSPACE"
 # jq '.' "$GITHUB_EVENT_PATH"
-# echo "--"
-# env
+echo "--"
+env
 GITHUB_AUTH_TOKEN="$ACTIONS_RUNTIME_TOKEN"
 echo "tok:$GITHUB_AUTH_TOKEN"
 echo "-- scorecard now!!"
 #./scorecard --checks Code-Review --format sarif | jq '.'
 #curl www.google.com
 echo "end scoecard"
-# docker run -e GITHUB_AUTH_TOKEN=token gcr.io/openssf/scorecard:stable \
-#     --show-details --repo=https://github.com/ossf/scorecard
+docker run -e GITHUB_AUTH_TOKEN=token gcr.io/openssf/scorecard:stable --repo=https://github.com/ossf/scorecard --format json
