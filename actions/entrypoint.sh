@@ -39,4 +39,4 @@ echo "-- scorecard now!!"
 #./scorecard --checks Code-Review --format sarif | jq '.'
 #curl www.google.com
 echo "end scoecard"
-docker run -e GITHUB_AUTH_TOKEN=token gcr.io/openssf/scorecard:stable --repo=https://github.com/ossf/scorecard --format json
+echo docker run -e GITHUB_AUTH_TOKEN="$GITHUB_AUTH_TOKEN" gcr.io/openssf/scorecard:stable --repo="$GITHUB_REPOSITORY" --format json
