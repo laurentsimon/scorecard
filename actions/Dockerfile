@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang@sha256:3c4de86eec9cbc619cdd72424abd88326ffcf5d813a8338a7743c55e5898734f AS base
+# FROM golang@sha256:3c4de86eec9cbc619cdd72424abd88326ffcf5d813a8338a7743c55e5898734f AS base
+FROM debian:9.5-slim
 
 WORKDIR /src
 
@@ -21,11 +22,12 @@ RUN apt-get update -y &&\
 ADD entrypoint.sh entrypoint.sh
 RUN chmod +x entrypoint.sh
 
-# ENV CGO_ENABLED=0
-# COPY go.* ./
-# RUN go mod download
-# COPY scorecard ./
 ENTRYPOINT ["/src/entrypoint.sh"]
+
+
+# second
+
+# third
 
 # FROM golang@sha256:3c4de86eec9cbc619cdd72424abd88326ffcf5d813a8338a7743c55e5898734f AS base
 # WORKDIR /src

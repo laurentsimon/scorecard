@@ -30,7 +30,13 @@ inputs:
 runs:
   using: "docker"
   # TODO: pin it
-  image: "docker://gcr.io/openssf/scorecard:stable"
+  # "unsupported host" error with gcr.io :/
+  #image: "docker://gcr.io/openssf/scorecard:stable"
+  image: "Dockerfile"
+# runs:
+#   using: "composite"
+#   steps:
+#     - uses: laurentsimon/scorecard/actions@feat/action 
   env:
     # This is a backup mechanism in case we need to adjust
     # the behavior when scorecard is run as action.
