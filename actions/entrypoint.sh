@@ -16,7 +16,7 @@
 # ACTIONS_RUNTIME_TOKEN has token
 # GITHUB_EVENT_PATH has json file for the event
 # GITHUB_SHA
-# RUNNER_WORKSPACE
+# GITHUB_WORKSPACE has the downaloded repo
 # GITHUB_EVENT_NAME
 
 echo $PWD
