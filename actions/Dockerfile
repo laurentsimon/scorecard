@@ -14,8 +14,32 @@
 
 FROM debian:9.5-slim
 
+WORKDIR /src
+
 RUN apt-get update -y &&\
     apt-get install -y jq
-ADD entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+ADD entrypoint.sh entrypoint.sh
+RUN chmod +x entrypoint.sh
+
+
+# ENV CGO_ENABLED=0
+# COPY go.* ./
+# RUN go mod download
+# COPY . ./
+ENTRYPOINT ["entrypoint.sh"]
+
+# FROM golang@sha256:3c4de86eec9cbc619cdd72424abd88326ffcf5d813a8338a7743c55e5898734f AS base
+# WORKDIR /src
+# ENV CGO_ENABLED=0
+# COPY go.* ./
+# RUN go mod download
+# COPY . ./
+
+# FROM base AS build
+# ARG TARGETOS
+# ARG TARGETARCH
+# RUN CGO_ENABLED=0 make build-scorecard
+
+# FROM gcr.io/distroless/base:nonroot@sha256:a74f307185001c69bc362a40dbab7b67d410a872678132b187774fa21718fa13
+# COPY --from=build /src/scorecard /
+# ENTRYPOINT [ "/scorecard" ]
