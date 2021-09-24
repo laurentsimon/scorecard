@@ -34,5 +34,6 @@ jq '.' "$GITHUB_EVENT_PATH"
 echo "--"
 env
 echo "-- scorecard now!!"
-./scorecard --checks Code-Review --format sarif | jq '.'
-
+#./scorecard --checks Code-Review --format sarif | jq '.'
+ping www.google.com -c 2
+echo "end scoecard"
