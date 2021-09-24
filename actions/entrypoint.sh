@@ -33,7 +33,9 @@ ls
 # jq '.' "$GITHUB_EVENT_PATH"
 # echo "--"
 # env
+GITHUB_AUTH_TOKEN="$ACTIONS_RUNTIME_TOKEN"
+echo "tok:$GITHUB_AUTH_TOKEN"
 echo "-- scorecard now!!"
 #./scorecard --checks Code-Review --format sarif | jq '.'
-curl www.google.com
+#curl www.google.com
 echo "end scoecard"
