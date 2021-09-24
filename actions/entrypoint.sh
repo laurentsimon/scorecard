@@ -24,6 +24,7 @@ echo "--"
 ls
 echo "--"
 sh -c "echo SCORECARD_ENV = $SCORECARD_ENV"
+id
 sh -c "echo github event is: $GITHUB_EVENT_NAME"
 sh -c "echo sarif file: $INPUT_SARIF_FILE"
 sh -c "echo policy file: $INPUT_POLICY_FILE"
