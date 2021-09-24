@@ -17,7 +17,7 @@ FROM golang@sha256:3c4de86eec9cbc619cdd72424abd88326ffcf5d813a8338a7743c55e58987
 WORKDIR /src
 
 RUN apt-get update -y &&\
-    apt-get install -y jq netcat
+    apt-get install -y jq netcat curl
 ADD entrypoint.sh entrypoint.sh
 RUN chmod +x entrypoint.sh
 

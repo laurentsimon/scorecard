@@ -35,6 +35,5 @@ ls
 # env
 echo "-- scorecard now!!"
 #./scorecard --checks Code-Review --format sarif | jq '.'
-ping www.github.com -c 2
-nc -vv www.google.com 80
+curl www.google.com
 echo "end scoecard"
