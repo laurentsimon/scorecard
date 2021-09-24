@@ -27,6 +27,10 @@ inputs:
     description: "OUTPUT: Path to SARIF file to store results"
     required: true
 
+  repo_token:
+    description: "INPUT: GitHub token to necessary for API calls"
+    required: True
+
 runs:
   using: "docker"
   # TODO: pin it

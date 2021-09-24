@@ -20,7 +20,7 @@
 # GITHUB_EVENT_NAME
 
 # docker build . -f actions/Dockerfile -t laurentsimon/scorecard-action:latest
-# docker run -e INPUT_SARIF_FILE=results.sarif -e GITHUB_WORKSPACE=/src -e INPUT_POLICY_FILE="policy-test.yaml" -e ACTIONS_RUNTIME_TOKEN=$GITHUB_AUTH_TOKEN -e GITHUB_REPOSITORY="ossf/scorecard" laurentsimon/scorecard-action:latest
+# docker run -e INPUT_SARIF_FILE=results.sarif -e GITHUB_WORKSPACE=/src -e INPUT_POLICY_FILE="policy-test.yaml" -e INPUT_REPO_TOKEN=$GITHUB_AUTH_TOKEN -e GITHUB_REPOSITORY="ossf/scorecard" laurentsimon/scorecard-action:latest
 # 
 echo $PWD
 echo "--"
@@ -37,10 +37,11 @@ sh -c "echo policy file: $INPUT_POLICY_FILE"
 echo "--"
 env
 #export GITHUB_AUTH_TOKEN="$ACTIONS_RUNTIME_TOKEN"
-export GITHUB_AUTH_TOKEN="$GITHUB_TOKEN"
+export GITHUB_AUTH_TOKEN="$INPUT_REPO_TOKEN"
 export SCORECARD_V3=1
 export SCORECARD_POLICY_FILE="$GITHUB_WORKSPACE/$INPUT_POLICY_FILE"
 export SCORECARD_SARIF_FILE="$INPUT_SARIF_FILE"
+export SCORECARD_TOKEN
 echo "tok:$GITHUB_AUTH_TOKEN"
 echo "-- scorecard now!!"
 #./scorecard --checks Code-Review --format sarif | jq '.'
