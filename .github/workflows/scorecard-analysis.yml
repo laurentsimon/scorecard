@@ -8,5 +8,5 @@ jobs:
       - uses: actions/checkout@v1
       - uses: ./actions
         with:
-          policy_file: .github/scorecardd/policy.yml
+          policy_file: .github/scorecard/policy.yml
           sarif_file: results.sarif
