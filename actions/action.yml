@@ -33,6 +33,13 @@ runs:
   # "unsupported host" error with gcr.io :/
   #image: "docker://gcr.io/openssf/scorecard:stable"
   image: "docker://laurentsimon/scorecard-action:latest"
+  # image: 'Dockerfile'
+  #args:
+  #  - "--repo=$GITHUB_REPOSITORY"
+  #  - "--policy=$INPUT_POLICY_FILE"
+  #  - "--format sarif"
+  #  - "--output_file=$INPUT_SARIF_FILE"
+
 # runs:
 #   using: "composite"
 #   steps:
