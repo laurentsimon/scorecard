@@ -36,7 +36,8 @@ sh -c "echo policy file: $INPUT_POLICY_FILE"
 # jq '.' "$GITHUB_EVENT_PATH"
 echo "--"
 env
-export GITHUB_AUTH_TOKEN="$ACTIONS_RUNTIME_TOKEN"
+#export GITHUB_AUTH_TOKEN="$ACTIONS_RUNTIME_TOKEN"
+export GITHUB_AUTH_TOKEN="$GITHUB_TOKEN"
 export SCORECARD_V3=1
 export SCORECARD_POLICY_FILE="$GITHUB_WORKSPACE/$INPUT_POLICY_FILE"
 export SCORECARD_SARIF_FILE="$INPUT_SARIF_FILE"
@@ -45,7 +46,6 @@ echo "-- scorecard now!!"
 #./scorecard --checks Code-Review --format sarif | jq '.'
 #curl www.google.com
 # TODO: check saif file and policy files.
-ls "$GITHUB_WORKSPACE"
 /src/scorecard --repo="$GITHUB_REPOSITORY" --format sarif --show-details --checks=Token-Permissions --policy="$SCORECARD_POLICY_FILE" > "$SCORECARD_SARIF_FILE"
 jq '.' "$SCORECARD_SARIF_FILE"
 echo "end scoecard"
