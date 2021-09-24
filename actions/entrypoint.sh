@@ -1,4 +1,4 @@
-#!/bin/sh -l
+#!/bin/sh -le
 # Copyright 2021 Security Scorecard Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,5 +35,5 @@ echo "--"
 env
 echo "-- scorecard now!!"
 #./scorecard --checks Code-Review --format sarif | jq '.'
-ping www.google.com -c 2
+ping www.github.com -c 2
 echo "end scoecard"
