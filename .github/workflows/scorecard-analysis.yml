@@ -2,7 +2,7 @@ name: A workflow for my scorecard analysis
 on: push
 jobs:
   build:
-    name: Scoercard action
+    name: Scorecard action
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
