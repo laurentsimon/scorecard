@@ -28,7 +28,7 @@ inputs:
     required: true
 
   repo_token:
-    description: "INPUT: GitHub token to necessary for API calls"
+    description: "INPUT: GitHub token with read access"
     required: True
 
 runs:

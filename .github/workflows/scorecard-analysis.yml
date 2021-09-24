@@ -10,3 +10,4 @@ jobs:
         with:
           policy_file: .github/scorecard/policy.yml
           sarif_file: results.sarif
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
