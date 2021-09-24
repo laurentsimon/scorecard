@@ -1,13 +1,27 @@
 name: A workflow for my scorecard analysis
 on: push
+
+permissions: read-all
+
 jobs:
-  build:
+  analysis:
     name: Scorecard action
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    
     steps:
-      - uses: actions/checkout@v1
-      - uses: ./actions
+      - name: "Checkout code"
+        uses: actions/checkout@v1
+
+      - name: "Run analysis"
+        uses: ./actions
         with:
           policy_file: .github/scorecard/policy.yml
           sarif_file: results.sarif
           repo_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Upload results"
+        uses: github/codeql-action/upload-sarif@v1
+        with:
+          sarif_file: results.sarif
