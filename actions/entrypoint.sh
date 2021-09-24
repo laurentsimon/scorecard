@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+echo $PWD
+ls
 sh -c "echo SCORECARD_ENV = $SCORECARD_ENV"
 sh -c "echo github event is: $GITHUB_EVENT_NAME"
+env
