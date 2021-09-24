@@ -30,7 +30,7 @@ inputs:
 runs:
   using: "docker"
   # TODO: pin it
-  image: "gcr.io/openssf/scorecard:stable"
+  image: "gcr.io://openssf/scorecard:stable"
   env:
     # This is a backup mechanism in case we need to adjut
     # the behavior when scorecard is run as action.
