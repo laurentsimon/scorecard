@@ -29,9 +29,10 @@ id
 sh -c "echo github event is: $GITHUB_EVENT_NAME"
 sh -c "echo sarif file: $INPUT_SARIF_FILE"
 sh -c "echo policy file: $INPUT_POLICY_FILE"
-ls "$RUNNER_WORKSPACE"
+echo "workspace content:" && ls "$GITHUB_WORKSPACE"
 jq '.' "$GITHUB_EVENT_PATH"
 echo "--"
 env
-echo "--"
+echo "-- scorecard now!!"
+./scorecard --checks Code-Review --format sarif | jq '.'
 
