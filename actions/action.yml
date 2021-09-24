@@ -32,7 +32,7 @@ runs:
   # TODO: pin it
   # "unsupported host" error with gcr.io :/
   #image: "docker://gcr.io/openssf/scorecard:stable"
-  image: "Dockerfile"
+  image: "docker://laurentsimon/scorecard-action:latest"
 # runs:
 #   using: "composite"
 #   steps:

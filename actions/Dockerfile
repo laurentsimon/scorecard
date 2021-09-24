@@ -19,7 +19,7 @@ WORKDIR /src
 
 RUN apt-get update -y &&\
     apt-get install -y jq netcat curl
-ADD entrypoint.sh entrypoint.sh
+ADD actions/entrypoint.sh entrypoint.sh
 RUN chmod +x entrypoint.sh
 
 ENTRYPOINT ["/src/entrypoint.sh"]
