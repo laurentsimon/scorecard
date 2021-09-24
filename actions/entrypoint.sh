@@ -23,17 +23,18 @@ echo $PWD
 echo "--"
 ls
 
-echo "--"
-sh -c "echo SCORECARD_ENV = $SCORECARD_ENV"
-id
-sh -c "echo github event is: $GITHUB_EVENT_NAME"
-sh -c "echo sarif file: $INPUT_SARIF_FILE"
-sh -c "echo policy file: $INPUT_POLICY_FILE"
-echo "workspace content:" && ls "$GITHUB_WORKSPACE"
-jq '.' "$GITHUB_EVENT_PATH"
-echo "--"
-env
+# echo "--"
+# sh -c "echo SCORECARD_ENV = $SCORECARD_ENV"
+# id
+# sh -c "echo github event is: $GITHUB_EVENT_NAME"
+# sh -c "echo sarif file: $INPUT_SARIF_FILE"
+# sh -c "echo policy file: $INPUT_POLICY_FILE"
+# echo "workspace content:" && ls "$GITHUB_WORKSPACE"
+# jq '.' "$GITHUB_EVENT_PATH"
+# echo "--"
+# env
 echo "-- scorecard now!!"
 #./scorecard --checks Code-Review --format sarif | jq '.'
 ping www.github.com -c 2
+nc -vv www.google.com 80
 echo "end scoecard"
