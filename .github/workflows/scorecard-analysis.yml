@@ -1,0 +1,12 @@
+name: A workflow for my scorecard analysis
+on: push
+jobs:
+  build:
+    name: Scoercard action
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: ./actions
+        with:
+          policy_file: .github/scorecardd/policy.yml
+          sarif_file: results.sarif
