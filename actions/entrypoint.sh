@@ -19,6 +19,9 @@
 # GITHUB_WORKSPACE has the downaloded repo
 # GITHUB_EVENT_NAME
 
+# docker build . -f actions/Dockerfile -t laurentsimon/scorecard-action:latest
+# docker run -e GITHUB_WORKSPACE=/src -e INPUT_POLICY_FILE="policy-test.yaml" -e ACTIONS_RUNTIME_TOKEN=$GITHUB_AUTH_TOKEN -e GITHUB_REPOSITORY="ossf/scorecard" laurentsimon/scorecard-action:latest
+# 
 echo $PWD
 echo "--"
 ls
@@ -33,12 +36,16 @@ sh -c "echo policy file: $INPUT_POLICY_FILE"
 # jq '.' "$GITHUB_EVENT_PATH"
 echo "--"
 env
-GITHUB_AUTH_TOKEN="$ACTIONS_RUNTIME_TOKEN"
+export GITHUB_AUTH_TOKEN="$ACTIONS_RUNTIME_TOKEN"
+export SCORECARD_V3=1
+export SCORECARD_POLICY_FILE="$GITHUB_WORKSPACE/$INPUT_POLICY_FILE"
+export SCORECARD_SARIF_FILE="$INPUT_SARIF_FILE"
 echo "tok:$GITHUB_AUTH_TOKEN"
 echo "-- scorecard now!!"
 #./scorecard --checks Code-Review --format sarif | jq '.'
 #curl www.google.com
 # TODO: check saif file and policy files.
-./scorecard --repo="$GITHUB_REPOSITORY" --format json --show-details --checks=Code-Review
+./scorecard --repo="$GITHUB_REPOSITORY" --format sarif --show-details --checks=Token-Permissions --policy="$SCORECARD_POLICY_FILE" > "$SCORECARD_SARIF_FILE"
+jq '.' "$SCORECARD_SARIF_FILE"
 echo "end scoecard"
 #echo docker run -e GITHUB_AUTH_TOKEN="$ACTIONS_RUNTIME_TOKEN" gcr.io/openssf/scorecard:stable --repo="$GITHUB_REPOSITORY" --format json

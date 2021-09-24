@@ -22,15 +22,17 @@ RUN apt-get update -y &&\
 ADD actions/entrypoint.sh entrypoint.sh
 RUN chmod +x entrypoint.sh
 
-ENV CGO_ENABLED=0
-COPY go.* ./
-RUN go mod download
-COPY . ./
+# ENV CGO_ENABLED=0
+# COPY go.* ./
+# RUN go mod download
+# COPY . ./
 
-ARG TARGETOS
-ARG TARGETARCH
-RUN CGO_ENABLED=0 make build-scorecard
+# ARG TARGETOS
+# ARG TARGETARCH
+# RUN CGO_ENABLED=0 make build-scorecard
 
+COPY ./scorecard .
+COPY policy-test.yaml .
 ENTRYPOINT ["/src/entrypoint.sh"]
 
 
