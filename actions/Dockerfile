@@ -32,7 +32,7 @@ RUN chmod +x entrypoint.sh
 # RUN CGO_ENABLED=0 make build-scorecard
 
 COPY ./scorecard .
-COPY policy-test.yaml .
+COPY .github/scorecard/policy.yml .
 ENTRYPOINT ["/src/entrypoint.sh"]
 
 

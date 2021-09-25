@@ -45,3 +45,6 @@ policies:
   CI-Tests:
       score: 10
       mode: enforced
+  Maintained:
+      score: 10
+      mode: enforced
