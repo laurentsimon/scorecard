@@ -243,6 +243,7 @@ func detailsToLocations(details []checker.CheckDetail,
 
 		loc := location{
 			PhysicalLocation: physicalLocation{
+				// TODO: fix https://github.com/laurentsimon/scorecard/security/code-scanning/51?query=ref%3Arefs%2Fheads%2Ffeat%2Faction
 				ArtifactLocation: artifactLocation{
 					URI:       d.Msg.Path,
 					URIBaseID: "%SRCROOT%",
@@ -359,6 +360,7 @@ func createSARIFRule(checkName, checkID, descURL, longDesc, shortDesc string,
 		ID:   checkID,
 		Name: checkName,
 		// TODO: verify this works on GitHub.
+		// TODO: need fix: should be only text.
 		ShortDesc: text{Text: shortDesc},
 		FullDesc:  text{Text: longDesc},
 		HelpURI:   descURL,

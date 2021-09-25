@@ -1,4 +1,4 @@
-name: A workflow for my scorecard analysis
+name: Scorecard analysis workflow
 on: 
   push:
     branches: [feat/action]
@@ -7,7 +7,7 @@ permissions: read-all
 
 jobs:
   analysis:
-    name: Scorecard action
+    name: Scorecard analysis
     runs-on: ubuntu-latest
     permissions:
       security-events: write
@@ -28,8 +28,11 @@ jobs:
         with:
           sarif_file: results.sarif
 
+      # https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
+      # Optional.
       - name: "Upload artifact"
         uses: actions/upload-artifact@v2
         with:
           name: SARIF file
           path: results.sarif
+          retention-days: 5
