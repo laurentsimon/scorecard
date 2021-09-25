@@ -47,7 +47,7 @@ echo "-- scorecard now!!"
 #./scorecard --checks Code-Review --format sarif | jq '.'
 #curl www.google.com
 # TODO: check saif file and policy files.
-/src/scorecard --repo="$GITHUB_REPOSITORY" --format sarif --show-details --checks=Token-Permissions --policy="$SCORECARD_POLICY_FILE" > "$SCORECARD_SARIF_FILE"
+/src/scorecard --repo="$GITHUB_REPOSITORY" --format sarif --show-details --policy="$SCORECARD_POLICY_FILE" > "$SCORECARD_SARIF_FILE"
 jq '.' "$SCORECARD_SARIF_FILE"
 echo "end scoecard"
 #echo docker run -e GITHUB_AUTH_TOKEN="$ACTIONS_RUNTIME_TOKEN" gcr.io/openssf/scorecard:stable --repo="$GITHUB_REPOSITORY" --format json

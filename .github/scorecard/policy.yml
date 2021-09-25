@@ -33,3 +33,15 @@ policies:
   Dependency-Update-Tool:
       score: 10
       mode: enforced
+  Fuzzing:
+      score: 10
+      mode: enforced
+  CII-Best-Practices:
+      score: 10
+      mode: enforced
+  Vulnerabilities:
+      score: 10
+      mode: enforced
+  CI-Tests:
+      score: 10
+      mode: enforced

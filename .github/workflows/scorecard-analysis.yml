@@ -23,7 +23,13 @@ jobs:
           sarif_file: results.sarif
           repo_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: "Upload results"
+      - name: "Upload SARIF results"
         uses: github/codeql-action/upload-sarif@v1
         with:
           sarif_file: results.sarif
+
+      - name: "Upload artifact"
+        uses: actions/upload-artifact@v2
+        with:
+          name: SARIF file
+          path: results.sarif
