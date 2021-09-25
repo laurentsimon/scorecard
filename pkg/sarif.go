@@ -243,7 +243,6 @@ func detailsToLocations(details []checker.CheckDetail,
 
 		loc := location{
 			PhysicalLocation: physicalLocation{
-				// TODO: fix https://github.com/laurentsimon/scorecard/security/code-scanning/51?query=ref%3Arefs%2Fheads%2Ffeat%2Faction
 				ArtifactLocation: artifactLocation{
 					URI:       d.Msg.Path,
 					URIBaseID: "%SRCROOT%",
@@ -278,6 +277,8 @@ func addDefaultLocation(locs []location, policyFile string) []location {
 			Region: region{
 				// TODO: set the line to the check if it's overwritten,
 				// or to the global policy.
+				// We can update the checkPolicy structure to store the line
+				// number as well.
 				StartLine: &detaultLine,
 			},
 		},
