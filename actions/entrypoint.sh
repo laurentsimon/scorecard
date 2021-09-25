@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# ACTIONS_RUNTIME_TOKEN has token
+# https://docs.github.com/en/actions/learn-github-actions/environment-variables
 # GITHUB_EVENT_PATH has json file for the event
 # GITHUB_SHA
 # GITHUB_WORKSPACE has the downaloded repo
@@ -27,7 +27,6 @@ echo "--"
 ls
 
 # echo "--"
-sh -c "echo SCORECARD_ENV = $SCORECARD_ENV"
 # id
 sh -c "echo github event is: $GITHUB_EVENT_NAME"
 sh -c "echo sarif file: $INPUT_SARIF_FILE"
@@ -41,13 +40,17 @@ export GITHUB_AUTH_TOKEN="$INPUT_REPO_TOKEN"
 export SCORECARD_V3=1
 export SCORECARD_POLICY_FILE="$GITHUB_WORKSPACE/$INPUT_POLICY_FILE"
 export SCORECARD_SARIF_FILE="$INPUT_SARIF_FILE"
-export SCORECARD_TOKEN
+
+#TODO: set SCORECARD_ENV="github-actions" if GITHUB_ACTIONS set to true
+
 echo "tok:$GITHUB_AUTH_TOKEN"
 echo "-- scorecard now!!"
 #./scorecard --checks Code-Review --format sarif | jq '.'
 #curl www.google.com
 # TODO: check saif file and policy files.
+# TODO: validate branch GITHUB_REF
 /src/scorecard --repo="$GITHUB_REPOSITORY" --format sarif --show-details --policy="$SCORECARD_POLICY_FILE" > "$SCORECARD_SARIF_FILE"
+cat "$SCORECARD_SARIF_FILE"
 jq '.' "$SCORECARD_SARIF_FILE"
 echo "end scoecard"
 #echo docker run -e GITHUB_AUTH_TOKEN="$ACTIONS_RUNTIME_TOKEN" gcr.io/openssf/scorecard:stable --repo="$GITHUB_REPOSITORY" --format json
