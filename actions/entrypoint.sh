@@ -19,8 +19,8 @@
 # GITHUB_WORKSPACE has the downaloded repo
 # GITHUB_EVENT_NAME
 
-# docker build . -f actions/Dockerfile -t laurentsimon/scorecard-action:latest
-# docker run -e INPUT_SARIF_FILE=results.sarif -e GITHUB_WORKSPACE=/src -e INPUT_POLICY_FILE="policy-test.yaml" -e INPUT_REPO_TOKEN=$GITHUB_AUTH_TOKEN -e GITHUB_REPOSITORY="ossf/scorecard" laurentsimon/scorecard-action:latest
+# docker build . --build-arg DOCKER_SHA=bf2567568f8fb47fe295ba6fc4d77a45fb12467a622c6f73a755641ed250157a -f actions/Dockerfile -t laurentsimon/scorecard-action:latest
+# docker run -e INPUT_SARIF_FILE=results.sarif -e GITHUB_WORKSPACE=/src -e INPUT_POLICY_FILE="policy.yml" -e INPUT_REPO_TOKEN=$GITHUB_AUTH_TOKEN -e GITHUB_REPOSITORY="ossf/scorecard" laurentsimon/scorecard-action:latest
 # 
 echo $PWD
 echo "--"
@@ -49,8 +49,12 @@ echo "-- scorecard now!!"
 #curl www.google.com
 # TODO: check saif file and policy files.
 # TODO: validate branch GITHUB_REF
+
+# It's important to change directories here, to ensure
+# the files in SARIF start at the source of the repo.
+# This allows GitHub to highlight the file.
 cd "$GITHUB_WORKSPACE"
-/src/scorecard --repo="$GITHUB_REPOSITORY" --format sarif --show-details --policy="$SCORECARD_POLICY_FILE" > "$SCORECARD_SARIF_FILE"
+/scorecard --repo="$GITHUB_REPOSITORY" --format sarif --show-details --policy="$SCORECARD_POLICY_FILE" > "$SCORECARD_SARIF_FILE"
 cat "$SCORECARD_SARIF_FILE"
 jq '.' "$SCORECARD_SARIF_FILE"
 echo "end scoecard"

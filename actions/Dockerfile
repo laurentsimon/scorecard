@@ -12,11 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang@sha256:3c4de86eec9cbc619cdd72424abd88326ffcf5d813a8338a7743c55e5898734f
-#FROM debian:9.5-slim
+# TODO: docker build . --build-arg DOCKER_SHA=bf2567568f8fb47fe295ba6fc4d77a45fb12467a622c6f73a755641ed250157a -f actions/Dockerfile -t laurentsimon/scorecard-action:latest
+ARG DOCKER_SHA
+FROM gcr.io/openssf/scorecard@sha256:${DOCKER_SHA} as base
+#FROM gcr.io/openssf/scorecard:stable as base
+#FROM golang@sha256:3c4de86eec9cbc619cdd72424abd88326ffcf5d813a8338a7743c55e5898734f
+FROM debian:9.5-slim
 
-WORKDIR /src
+COPY --from=base /scorecard /scorecard
+#WORKDIR /src
 
+#FROM golang@sha256:3c4de86eec9cbc619cdd72424abd88326ffcf5d813a8338a7743c55e5898734f
 RUN apt-get update -y &&\
     apt-get install -y jq curl
 ADD actions/entrypoint.sh entrypoint.sh
@@ -31,9 +37,9 @@ RUN chmod +x entrypoint.sh
 # ARG TARGETARCH
 # RUN CGO_ENABLED=0 make build-scorecard
 
-COPY ./scorecard .
+#COPY ./scorecard .
 COPY .github/scorecard/policy.yml .
-ENTRYPOINT ["/src/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
 
 
 # second
