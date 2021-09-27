@@ -31,12 +31,16 @@ inputs:
     description: "INPUT: GitHub token with read access"
     required: True
 
-runs:
-  using: "docker"
-  # TODO: pin it
-  # "unsupported host" error with gcr.io :/
-  #image: "docker://gcr.io/openssf/scorecard:stable"
-  image: "docker://laurentsimon/scorecard-action:latest"
+branding:
+  icon: "mic"
+  color: "purple"
+
+# runs:
+#   using: "docker"
+#   # TODO: pin it
+#   # "unsupported host" error with gcr.io :/
+#   #image: "docker://gcr.io/openssf/scorecard:stable"
+#   image: "docker://laurentsimon/scorecard-action:latest"
   # image: 'Dockerfile'
   #args:
   #  - "--repo=$GITHUB_REPOSITORY"
@@ -44,11 +48,36 @@ runs:
   #  - "--format sarif"
   #  - "--output_file=$INPUT_SARIF_FILE"
 
-# runs:
-#   using: "composite"
-#   steps:
-#     - uses: laurentsimon/scorecard/actions@feat/action 
+runs:
+  using: "composite"
+  steps:
+    -
+      run: |
+        set -euo pipefail
 
-branding:
-  icon: "mic"
-  color: "purple"
+        # https://docs.github.com/en/actions/learn-github-actions/environment-variables
+        # GITHUB_EVENT_PATH contains the json file for the event.
+        # GITHUB_SHA contains the commit hash.
+        # GITHUB_WORKSPACE contains the repo folder.
+        # GITHUB_EVENT_NAME contains the event name.
+
+        export GITHUB_AUTH_TOKEN="$INPUT_REPO_TOKEN"
+        export SCORECARD_V3=1
+        export SCORECARD_POLICY_FILE="$INPUT_POLICY_FILE"
+        export SCORECARD_SARIF_FILE="$INPUT_SARIF_FILE"
+
+        # Download scorecard and verify its hash.
+        # TODO: verify signature.
+        export EXPECTED_SHA256="14cddd1f2bc16518cc3d35eb52ddb03ee8daa1db846a39dc1762e923f77010ff"
+        export URL=https://github.com/ossf/scorecard/releases/download/v2.2.8/scorecard_2.2.8_Linux_x86_64.tar.gz
+        
+        curl -L "$URL" -o output.tar.gz
+        echo "$EXPECTED_SHA256  output.tar.gz" | sha256sum --check
+        
+        # It's important to change directories here, to ensure
+        # the files in SARIF start at the source of the repo.
+        # This allows GitHub to highlight the file.
+        cd "$GITHUB_WORKSPACE"
+        /scorecard --repo="$GITHUB_REPOSITORY" --format sarif --show-details --policy="$SCORECARD_POLICY_FILE" > "$SCORECARD_SARIF_FILE"
+
+      shell: bash
