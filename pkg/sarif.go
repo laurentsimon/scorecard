@@ -84,9 +84,19 @@ type defaultConfig struct {
 	Level string `json:"level"`
 }
 
+type problem struct {
+	// nolint
+	// https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#reportingdescriptor-object.
+	// Any of `error`, `warning`, `recommendation`
+	Severity string `json:"severity"`
+}
+
+//nolint:govet
 type properties struct {
-	Precision string   `json:"precision"`
-	Tags      []string `json:"tags"`
+	Precision     string             `json:"precision"`
+	Tags          []string           `json:"tags"`
+	Problem       problem            `json:"problem,omitempty"`
+	SeverityLevel sarifSeverityLevel `json:"security-severity,omitempty"`
 }
 
 type help struct {
@@ -353,7 +363,64 @@ func createSARIFHeader(url, category, name, version, commit string, t time.Time)
 	}
 }
 
-func createSARIFRule(checkName, checkID, descURL, longDesc, shortDesc string,
+type sarifSeverityLevel float64
+
+func (s sarifSeverityLevel) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf("%.1f", s)), nil
+}
+
+func calculateSeverityLevel(risk string) sarifSeverityLevel {
+	// nolint
+	// https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#reportingdescriptor-object.
+	// "over 9.0 is critical, 7.0 to 8.9 is high, 4.0 to 6.9 is medium and 3.9 or less is low".
+	switch risk {
+	case "Critical":
+		return 9.0
+	case "High":
+		return 7.0
+	case "Medium":
+		return 4.0
+	// Low
+	default:
+		return 1.0
+	}
+}
+
+func generateProblemSeverity(risk string) string {
+	// nolint
+	// https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#reportingdescriptor-object.
+	switch risk {
+	case "Critical":
+		return "error"
+	case "High":
+		return "error"
+	case "Medium":
+		return "warning"
+	case "Low":
+		return "recommendation"
+	}
+	// This should never happens.
+	return ""
+}
+
+func generateDefaultConfig(risk string) string {
+	// "none", "note", "warning", "error",
+	switch risk {
+	case "Critical":
+		return "error"
+	case "High":
+		return "error"
+	case "Medium":
+		return "warning"
+	case "Low":
+		return "note"
+	}
+	// This never happens.
+	return ""
+}
+
+func createSARIFRule(checkName, checkID, descURL,
+	longDesc, shortDesc, risk string,
 	tags []string) rule {
 	return rule{
 		ID:   checkID,
@@ -367,11 +434,15 @@ func createSARIFRule(checkName, checkID, descURL, longDesc, shortDesc string,
 			Markdown: textToMarkdown(longDesc),
 		},
 		DefaultConfig: defaultConfig{
-			Level: "error",
+			Level: generateDefaultConfig(risk),
 		},
 		Properties: properties{
 			Tags:      tags,
 			Precision: "high",
+			Problem: problem{
+				Severity: generateProblemSeverity(risk),
+			},
+			SeverityLevel: calculateSeverityLevel(risk),
 		},
 	}
 }
@@ -455,7 +526,7 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel zapcore.Level,
 		rule := createSARIFRule(check.Name, checkID,
 			doc.GetDocumentationURL(r.Scorecard.CommitSHA),
 			doc.GetDescription(), doc.GetShort(),
-			doc.GetTags())
+			doc.GetRisk(), doc.GetTags())
 		rules = append(rules, rule)
 
 		// Add default location if no locations are present.

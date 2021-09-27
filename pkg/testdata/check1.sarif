@@ -34,7 +34,11 @@
                         "tags": [
                            "tag1",
                            "tag2"
-                        ]
+                        ],
+                        "problem": {
+                           "severity": "error"
+                        },
+                        "security-severity": 7.0
                      }
                   }
                ]
