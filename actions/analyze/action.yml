@@ -75,8 +75,8 @@ runs:
                 
         export CHECKSUMS="scorecard_$SCORECARD_VERSION_checksums.txt"
         export TARGZ="scorecard_$SCORECARD_VERSION_Linux_x86_64.tar.gz"
-        export TAR_URL="https://github.com/ossf/scorecard/releases/download/v2.2.8/$TARGZ"
-        export SHA_URL="https://github.com/ossf/scorecard/releases/download/v2.2.8/$CHECKSUMS"
+        export TAR_URL="https://github.com/ossf/scorecard/releases/download/v$SCORECARD_VERSION/$TARGZ"
+        export SHA_URL="https://github.com/ossf/scorecard/releases/download/v$SCORECARD_VERSION/$CHECKSUMS"
         
         curl -L "$URL" -o "$TARGZ"
         cat "$CHECKSUMS" | grep "$TARGZ" | sha512sum --check
