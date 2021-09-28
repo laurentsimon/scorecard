@@ -55,6 +55,9 @@ runs:
       run: |
         set -euo pipefail
 
+        # Update to latest version as desired.
+        export SCORECARD_VERSION="2.2.8"
+
         # https://docs.github.com/en/actions/learn-github-actions/environment-variables
         # GITHUB_EVENT_PATH contains the json file for the event.
         # GITHUB_SHA contains the commit hash.
@@ -67,17 +70,22 @@ runs:
         export SCORECARD_SARIF_FILE="$INPUT_SARIF_FILE"
 
         # Download scorecard and verify its hash.
-        # TODO: verify signature.
-        export EXPECTED_SHA256="14cddd1f2bc16518cc3d35eb52ddb03ee8daa1db846a39dc1762e923f77010ff"
-        export URL=https://github.com/ossf/scorecard/releases/download/v2.2.8/scorecard_2.2.8_Linux_x86_64.tar.gz
+        # TODO: verify signature. We currently trust the hash, but it can
+        # be changed by a malicious maintainer.
+                
+        export CHECKSUMS="scorecard_$SCORECARD_VERSION_checksums.txt"
+        export TARGZ="scorecard_$SCORECARD_VERSION_Linux_x86_64.tar.gz"
+        export TAR_URL="https://github.com/ossf/scorecard/releases/download/v2.2.8/$TARGZ"
+        export SHA_URL="https://github.com/ossf/scorecard/releases/download/v2.2.8/$CHECKSUMS"
         
-        curl -L "$URL" -o output.tar.gz
-        echo "$EXPECTED_SHA256  output.tar.gz" | sha256sum --check
+        curl -L "$URL" -o "$TARGZ"
+        cat "$CHECKSUMS" | grep "$TARGZ" | sha512sum --check
+        tar xvf "$TARGZ"
         
         # It's important to change directories here, to ensure
         # the files in SARIF start at the source of the repo.
         # This allows GitHub to highlight the file.
         cd "$GITHUB_WORKSPACE"
-        /scorecard --repo="$GITHUB_REPOSITORY" --format sarif --show-details --policy="$SCORECARD_POLICY_FILE" > "$SCORECARD_SARIF_FILE"
+        ./scorecard --repo="$GITHUB_REPOSITORY" --format sarif --show-details --policy="$SCORECARD_POLICY_FILE" > "$SCORECARD_SARIF_FILE"
 
       shell: bash
