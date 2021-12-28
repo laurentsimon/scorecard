@@ -15,6 +15,7 @@
 package checks
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/ossf/scorecard/v3/checker"
@@ -54,7 +55,7 @@ func checkOSSFuzz(c *checker.CheckRequest) (bool, error) {
 		Filename: "project.yaml",
 	}
 	result, err := c.OssFuzzRepo.Search(req)
-	if err != nil {
+	if err != nil && !errors.Is(err, sce.ErrRepoUnreachable) {
 		e := sce.WithMessage(sce.ErrScorecardInternal, fmt.Sprintf("Client.Search.Code: %v", err))
 		return false, e
 	}
