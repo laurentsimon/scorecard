@@ -1,0 +1,44 @@
+name: Test SLSA
+on:
+  workflow_dispatch:
+
+permissions: read-all
+
+# env:
+#   ENV_TEST: "some tests env variable"
+      
+jobs:
+  args:
+    runs-on: ubuntu-latest
+    outputs:
+      ldflags: ${{ steps.ldflags.outputs.value }}
+    steps:
+      - id: ldflags
+        run: |
+          echo "::set-output name=value::$(./scripts/version-ldflags)"
+
+  build:
+    permissions:
+      id-token: write
+      contents: read
+    needs: args
+    uses: laurentsimon/slsa-on-github/.github/workflows/slsa-builder-go.yml@feat/buildname
+    with:
+      go-version: 1.17
+      #TODO: make this a json/yaml object object
+      env: "VERSION_LDFLAGS:${{needs.args.outputs.ldflags}}"
+
+  upload:
+    permissions:
+      packages: write
+      contents: read
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: 'actions/download-artifact@v2'
+        with:
+          name: ${{ needs.build.outputs.go-binary-name }}
+      - run: |
+          echo name is ${{ needs.build.outputs.go-binary-name }}
+          chmod a+x ./${{ needs.build.outputs.go-binary-name }}
+          ./${{ needs.build.outputs.go-binary-name }} version
