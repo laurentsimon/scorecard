@@ -57,13 +57,13 @@ type jsonCheckResultV2 struct {
 }
 
 type jsonRepoV2 struct {
-	Name   string `json:"name"`
-	Commit string `json:"commit"`
+	Name   string `json:"name" bigquery:"name"`
+	Commit string `json:"commit" bigquery:"commit"`
 }
 
 type jsonScorecardV2 struct {
-	Version string `json:"version"`
-	Commit  string `json:"commit"`
+	Version string `json:"version" bigquery:"version"`
+	Commit  string `json:"commit" bigquery:"commit"`
 }
 
 type jsonFloatScore float64
@@ -120,7 +120,8 @@ func AsJSON(r *pkg.ScorecardResult, showDetails bool, logLevel log.Level, writer
 
 // AsJSON2 exports results as JSON for the cron job and in the new detail format.
 func AsJSON2(r *pkg.ScorecardResult, showDetails bool,
-	logLevel log.Level, checkDocs docs.Doc, writer io.Writer) error {
+	logLevel log.Level, checkDocs docs.Doc, writer io.Writer,
+) error {
 	score, err := r.GetAggregateScore(checkDocs)
 	if err != nil {
 		//nolint:wrapcheck
