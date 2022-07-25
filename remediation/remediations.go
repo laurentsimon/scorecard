@@ -49,6 +49,7 @@ func init() {
 
 // Setup sets up remediation code.
 func Setup(c *checker.CheckRequest) error {
+	fmt.Println("start remediation.Setup:", setupErr)
 	once.Do(func() {
 		// Get the branch for remediation.
 		b, err := c.RepoClient.GetDefaultBranch()
@@ -70,6 +71,7 @@ func Setup(c *checker.CheckRequest) error {
 			repo = fmt.Sprintf("%s/%s", parts[1], parts[2])
 		}
 	})
+	fmt.Println("end remediation.Setup:", setupErr)
 	return setupErr
 }
 
