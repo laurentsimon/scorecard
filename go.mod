@@ -47,6 +47,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/caarlos0/env/v6 v6.10.0
 	github.com/gobwas/glob v0.2.3
+	github.com/laurentsimon/godep2 v1.0.3
 	github.com/mcuadros/go-jsonschema-generator v0.0.0-20200330054847-ba7a369d4303
 	github.com/onsi/ginkgo/v2 v2.5.1
 	sigs.k8s.io/release-utils v0.6.0

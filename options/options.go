@@ -22,6 +22,7 @@ import (
 
 	"github.com/caarlos0/env/v6"
 
+	"github.com/laurentsimon/godep2"
 	"github.com/ossf/scorecard/v4/clients"
 	"github.com/ossf/scorecard/v4/log"
 )
@@ -50,6 +51,7 @@ type Options struct {
 
 // New creates a new instance of `Options`.
 func New() *Options {
+	godep2.TestEnv("FROM_OPTIONS")
 	opts := &Options{}
 	if err := env.Parse(opts); err != nil {
 		fmt.Printf("could not parse env vars, using default options: %v", err)
