@@ -683,6 +683,12 @@ github.com/laurentsimon/godep2 v1.0.2 h1:LaWYPAr4oRQQa5eCQvIpZLSkC1Ea4E6NInsCMYa
 github.com/laurentsimon/godep2 v1.0.2/go.mod h1:/sHLS41tlcuAiJQdcqPiDytgJyvyCjQltjZBcmqwQMA=
 github.com/laurentsimon/godep2 v1.0.3 h1:RTnODR7+y8bl/YLWiyR56uazbmxQi/DWChPoi/q+dVg=
 github.com/laurentsimon/godep2 v1.0.3/go.mod h1:/sHLS41tlcuAiJQdcqPiDytgJyvyCjQltjZBcmqwQMA=
+github.com/laurentsimon/godep2 v1.0.4 h1:S8IdBTKdQEmmChtOl2T5v+1X8IYF70AMNL0f3T4GJ4I=
+github.com/laurentsimon/godep2 v1.0.4/go.mod h1:xJCzt2cirFgP48b4thvn/qH7tJMESLls8FF9NfGj97w=
+github.com/laurentsimon/godep2 v1.0.5 h1:9NXRBpISm7JMTQmqIu34OTafhQ3MYgdjgN/UZoonABU=
+github.com/laurentsimon/godep2 v1.0.5/go.mod h1:xJCzt2cirFgP48b4thvn/qH7tJMESLls8FF9NfGj97w=
+github.com/laurentsimon/godep3 v1.0.0 h1:U2yXWmpbSs0z8FaMN8e+N60xCPSJ40YqRn46YtIG7qs=
+github.com/laurentsimon/godep3 v1.0.0/go.mod h1:Ifrqc9poMqn/NOkGaiVYRaHWDl7qG14oulXbgqR330M=
 github.com/leodido/go-urn v1.2.0/go.mod h1:+8+nEpDfqqsY+g338gtMEUOtuK+4dEMhiQEgxpxOKII=
 github.com/lib/pq v1.0.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lib/pq v1.1.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=

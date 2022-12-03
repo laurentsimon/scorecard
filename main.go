@@ -55,23 +55,32 @@ func retrieveCallInfo2() {
 
 	// TODO: query once and make it a double-linked list ?
 
-	// // Get package name.
-	// // Only needed if the main program or some packages have context-less permissions.
-	// frames := runtime.CallersFrames(pc)
-	// for {
-	// 	curr, more := frames.Next()
-	// 	packageName := getPackageName(curr.Function)
-	// 	fmt.Printf("- %s | %s | %s:%d \n", packageName, curr.Function, curr.File, curr.Line)
-	// 	if !more {
-	// 		break
-	// 	}
-	// }
+	// Get the direct caller package.
+	// Only needed if the main program or some packages have context-less permissions.
+	frames := runtime.CallersFrames(pc)
+	depName := "<local>"
+	for {
+		curr, more := frames.Next()
+		packageName := getPackageName(curr.Function)
+		// fmt.Printf("- %s | %s | %s:%d \n", packageName, curr.Function, curr.File, curr.Line)
+
+		currIs3P := is3PDependency(curr.File)
+
+		// Get the dependency.
+		if depName == "<local>" && currIs3P {
+			depName = packageName
+			break
+		}
+
+		if !more {
+			break
+		}
+	}
 
 	// Get the frames
-	frames := runtime.CallersFrames(rpc)
+	frames = runtime.CallersFrames(rpc)
 	prevIs3P := false
 	directDepName := "<local>"
-	depName := "<local>"
 	for {
 		curr, more := frames.Next()
 		// Process this frame.
@@ -88,10 +97,6 @@ func retrieveCallInfo2() {
 
 		currIs3P := is3PDependency(curr.File)
 
-		// Get the dependency.
-		if depName == "<local>" && currIs3P {
-			depName = packageName
-		}
 		// Check for package.
 		if currIs3P && !prevIs3P {
 			directDepName = packageName
@@ -108,7 +113,11 @@ func retrieveCallInfo2() {
 	fmt.Println(" . direct dep is", directDepName)
 	fmt.Println(" . caller dep is", depName)
 
-	allowedDirectDeps := map[string]bool{"<local>": true, "github.com/spf13/cobra": true}
+	allowedDirectDeps := map[string]bool{
+		"<local>":                        true,
+		"github.com/spf13/cobra":         true,
+		"github.com/laurentsimon/godep2": true,
+	}
 	allowedDangerousDeps := map[string]bool{"github.com/laurentsimon/godep2": true}
 	fmt.Println(" . Allowed:", isAllowed(allowedDirectDeps, directDepName) ||
 		isAllowed(allowedDangerousDeps, depName))
@@ -140,6 +149,7 @@ func getPackageName(packageName string) string {
 func main() {
 	hooks.SetManager(&manager)
 	godep2.TestEnv("FROM_MAIN")
+	godep2.TestEnvThruDep3("MAIN_DEP2_DEP3")
 	os.Getenv("FROM_MAIN_REALLY")
 	opts := options.New()
 	if err := cmd.New(opts).Execute(); err != nil {

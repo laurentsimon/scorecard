@@ -47,7 +47,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.0
 	github.com/caarlos0/env/v6 v6.10.0
 	github.com/gobwas/glob v0.2.3
-	github.com/laurentsimon/godep2 v1.0.3
+	github.com/laurentsimon/godep2 v1.0.5
 	github.com/mcuadros/go-jsonschema-generator v0.0.0-20200330054847-ba7a369d4303
 	github.com/onsi/ginkgo/v2 v2.5.1
 	sigs.k8s.io/release-utils v0.6.0
@@ -72,6 +72,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.1 // indirect
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/json-iterator/go v1.1.10 // indirect
+	github.com/laurentsimon/godep3 v1.0.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	golang.org/x/mod v0.7.0 // indirect
