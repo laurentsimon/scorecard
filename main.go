@@ -17,7 +17,7 @@ package main
 
 import (
 	"fmt"
-	"hooks"
+	//"hooks"
 	"log"
 	"os"
 	"runtime"
@@ -147,7 +147,7 @@ func getPackageName(packageName string) string {
 }
 
 func main() {
-	hooks.SetManager(&manager)
+	//hooks.SetManager(&manager)
 	godep2.TestEnv("FROM_MAIN")
 	godep2.TestEnvThruDep3("MAIN_DEP2_DEP3")
 	os.Getenv("FROM_MAIN_REALLY")
