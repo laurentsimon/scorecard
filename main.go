@@ -17,7 +17,7 @@ package main
 
 import (
 	"fmt"
-	//"hooks"
+	"hooks"
 	"log"
 	"os"
 	"runtime"
@@ -28,18 +28,57 @@ import (
 	"github.com/ossf/scorecard/v4/options"
 )
 
-type testHook struct{}
+type (
+	testHook   struct{}
+	policy     int
+	permission int
+)
+
+const (
+	policyDefaultAllow    policy = 1
+	policyDefaultDisallow policy = 2
+
+	permissionAllowed    permission = 1
+	permissionDisallowed permission = 2
+	permissionNotDefined permission = 3
+)
 
 func (l *testHook) Getenv(key string) {
 	fmt.Printf("hook called with '%s'\n", key)
 	// fmt.Println("stack info:")
 
-	retrieveCallInfo2()
+	retrieveCallInfo2(key)
 }
 
-var manager testHook
+var (
+	manager       testHook
+	defaultPolicy = policyDefaultDisallow
+)
 
-func retrieveCallInfo2() {
+// TODO: get dynamically at load time.
+var compilerPath = "/usr/local/google/home/laurentsimon/sandboxing/golang/go/"
+
+var (
+	localProgram         = "<local>"
+	ambientPolicy        = policyDefaultDisallow
+	depsPolicy           = policyDefaultDisallow // Note: inherited
+	allowedDangerousDeps = map[string]permission{"github.com/laurentsimon/godep2": permissionAllowed}
+	// allowedDangerousDeps = map[string]permission{"github.com/laurentsimon/godep2": permissionAllowed}
+	contextPermissions = map[string]permission{
+		localProgram:                     permissionAllowed,
+		"github.com/laurentsimon/godep2": permissionAllowed,
+		"github.com/laurentsimon/godep3": permissionAllowed,
+		"github.com/spf13/cobra":         permissionAllowed,
+		// takes carer of github.com/google/go-github/x/y
+		//"github.com/google/go-github": permissionDisallowed,
+		//"go.opencensus.io/plugin/ochttp":                   permissionAllowed,
+		"github.com/google/go-containerregistry": permissionAllowed,
+		//"github.com/google/go-containerregistry/pkg/crane": permissionAllowed,
+		// go.opencensus.io/plugin/ochttp dependent of v38/github as permissionDiallowed
+	}
+)
+
+func retrieveCallInfo2(key string) {
 	pc := make([]uintptr, 1000)
 	// Skip this function and the runtime.caller itself.
 	n := runtime.Callers(2, pc)
@@ -49,25 +88,33 @@ func retrieveCallInfo2() {
 
 	pc = pc[:n] // pass only valid pcs to runtime.CallersFrames
 	rpc := make([]uintptr, n)
-	for i := 0; i <= len(pc)-1; i++ {
-		rpc[i] = pc[len(pc)-(i+1)]
+	for i := 0; i < len(pc); i++ {
+		rpc[i] = pc[len(pc)-i-1]
 	}
 
 	// TODO: query once and make it a double-linked list ?
-
+	// if key == "GODEBUG" {
+	// 	fmt.Println("\n\n")
+	// }
+	// fmt.Println(pc)
+	// fmt.Println(rpc)
 	// Get the direct caller package.
 	// Only needed if the main program or some packages have context-less permissions.
 	frames := runtime.CallersFrames(pc)
-	depName := "<local>"
+	depName := localProgram
+	i := 0
 	for {
 		curr, more := frames.Next()
 		packageName := getPackageName(curr.Function)
-		// fmt.Printf("- %s | %s | %s:%d \n", packageName, curr.Function, curr.File, curr.Line)
+		// if key == "GODEBUG" {
+		// 	fmt.Printf("- %d - %s | %s | %s:%d \n", pc[i], packageName, curr.Function, curr.File, curr.Line)
+		// }
+		i++
 
 		currIs3P := is3PDependency(curr.File)
 
 		// Get the dependency.
-		if depName == "<local>" && currIs3P {
+		if depName == localProgram && currIs3P {
 			depName = packageName
 			break
 		}
@@ -77,10 +124,46 @@ func retrieveCallInfo2() {
 		}
 	}
 
-	// Get the frames
+	fmt.Println(" . caller dep is", depName)
+	// TODO: proper function for this.
+	var dangerousAllowed bool
+	if ambientPolicy == policyDefaultAllow && depsPolicy == policyDefaultAllow {
+		dangerousAllowed = true
+		// if not allowed by default, we need explicit permission set.
+		v, _ := allowedDangerousDeps[depName]
+		dangerousAllowed = v == permissionAllowed
+	} else {
+		dangerousAllowed = isPermissionAllowed(allowedDangerousDeps, depName)
+	}
+	fmt.Println(" . Allowed dangerous:", dangerousAllowed)
+
+	/*
+		ambientPolicy: allow
+		depsPolicy: allow
+		-> here we just need to walk the stack and find removed permissions.
+
+		Here I assume:
+		ambientPolicy: disallow
+		despPolicy: allow - continue selective removing and direct deps.
+		-> here we have a special case for the mmain program, but continue walking the
+		stack for removed / intersection of permissions.
+
+		ambientPolicy: disallow
+		depsPolicy: disallow
+		-> here we do the same as above, except we add a special case
+		 for the direct dependency if its permissions are not defined
+
+		Once direct deps are all declared, can move to disallow for deps.
+	*/
+
+	// Need to always walk the stack, since the calling dep could be part of a callback.
+	// Assume a default policy or disallow.
 	frames = runtime.CallersFrames(rpc)
+	i = 0
+	allowed := false
 	prevIs3P := false
-	directDepName := "<local>"
+	found3P := false
+	foundLocal := false
 	for {
 		curr, more := frames.Next()
 		// Process this frame.
@@ -92,45 +175,191 @@ func retrieveCallInfo2() {
 		// 	break
 		// }
 
-		packageName := getPackageName(curr.Function)
-		// fmt.Printf("- %s | %s | %s:%d \n", packageName, curr.Function, curr.File, curr.Line)
+		// if key == "GODEBUG" {
+		// 	fmt.Printf("- %d - %s | %s | %s:%d \n", rpc[i], packageName, curr.Function, curr.File, curr.Line)
+		// }
+		i++
 
+		// Can cache these.
 		currIs3P := is3PDependency(curr.File)
+		isRuntime := isRuntime(curr.File)
+		isLocal := !currIs3P && !isRuntime
 
-		// Check for package.
-		if currIs3P && !prevIs3P {
-			directDepName = packageName
-			break
+		// Assuming default policy is disallow.
+		// here we find the local package toop of the stack
+		// we cannot just check if the package is local due to
+		// callbacks.
+		// Note: this code should be properly seperated.
+		if isLocal {
+			if ambientPolicy == policyDefaultDisallow {
+				if !foundLocal {
+					foundLocal = true
+					if !isPermissionAllowed(contextPermissions, localProgram) {
+						fmt.Println(" . Allowed context: false -", localProgram)
+						break
+					}
+				}
+			} else {
+				if !isContextPermissionAllowed(contextPermissions, localProgram) {
+					fmt.Println(" . Allowed context: false -", localProgram)
+					break
+				}
+			}
 		}
+
+		packageName := getPackageName(curr.Function)
+		if currIs3P {
+			if !found3P && !prevIs3P {
+				fmt.Println(" . Direct dep -", packageName)
+			}
+			if depsPolicy == policyDefaultDisallow {
+				if !found3P && !prevIs3P {
+					// Direct dependency.
+					found3P = true
+					if !isPermissionAllowed(contextPermissions, packageName) {
+						fmt.Println(" . Allowed context: false (direct) -", packageName)
+						break
+					}
+				} else {
+					if !isContextPermissionAllowed(contextPermissions, packageName) {
+						fmt.Println(" . Allowed context: false -", packageName)
+						break
+					}
+				}
+			} else {
+				if !isContextPermissionAllowed(contextPermissions, packageName) {
+					fmt.Println(" . Allowed context: false -", packageName)
+					break
+				}
+			}
+		}
+
 		prevIs3P = currIs3P
+
+		// 	// set to true so that dependent inherit it
+		// 	allowed = true
+		// 	continue
+		// }
+
+		// first direct dependency was found.
+		// allow is always true here.
+		// if !allowed {
+		// 	panic("not allowed")
+		// }
+
+		// if currIs3P && isAllowed(contextPermissions, packageName) {
+		// 	fmt.Println(" . Allowed context: false -", packageName)
+		// 	break
+		// } else if !isRuntime && !isAllowed(contextPermissions, localProgram) {
+		// 	// Local, ie main program
+		// 	fmt.Println(" . Allowed context: false -", localProgram)
+		// 	break
+		// }
 
 		// Check whether there are more frames to process after this one.
 		if !more {
+			allowed = true
 			break
 		}
 
 	}
-	fmt.Println(" . direct dep is", directDepName)
-	fmt.Println(" . caller dep is", depName)
 
-	allowedDirectDeps := map[string]bool{
-		"<local>":                        true,
-		"github.com/spf13/cobra":         true,
-		"github.com/laurentsimon/godep2": true,
+	if allowed {
+		fmt.Println(" . Allowed context: true")
 	}
-	allowedDangerousDeps := map[string]bool{"github.com/laurentsimon/godep2": true}
-	fmt.Println(" . Allowed:", isAllowed(allowedDirectDeps, directDepName) ||
-		isAllowed(allowedDangerousDeps, depName))
+
+	if !dangerousAllowed && !allowed {
+		fmt.Println("VIOLATION")
+		os.Exit(2)
+	}
+	// if depName == "go.opencensus.io/plugin/ochttp" {
+	// 	os.Exit(2)
+	// }
+
+	// Get the frames - reverse
+	// frames = runtime.CallersFrames(rpc)
+	// prevIs3P := false
+	// directDepName := "<local>"
+	// for {
+	// 	curr, more := frames.Next()
+	// 	// Process this frame.
+	// 	//
+	// 	// To keep this example's output stable
+	// 	// even if there are changes in the testing package,
+	// 	// stop unwinding when we leave package runtime.
+	// 	// if !strings.Contains(frame.File, "runtime/") {
+	// 	// 	break
+	// 	// }
+
+	// 	packageName := getPackageName(curr.Function)
+	// 	// fmt.Printf("- %s | %s | %s:%d \n", packageName, curr.Function, curr.File, curr.Line)
+
+	// 	currIs3P := is3PDependency(curr.File)
+
+	// 	// Check for package.
+	// 	if currIs3P && !prevIs3P {
+	// 		directDepName = packageName
+	// 		break
+	// 	}
+	// 	prevIs3P = currIs3P
+
+	// 	// Check whether there are more frames to process after this one.
+	// 	if !more {
+	// 		break
+	// 	}
+
+	// }
+	// fmt.Println(" . direct dep is", directDepName)
+	// fmt.Println(" . caller dep is", depName)
 }
 
-func isAllowed(m map[string]bool, depName string) bool {
-	_, ok := m[depName]
-	return ok
+func isRuntime(filename string) bool {
+	return strings.HasPrefix(filename, compilerPath) ||
+		strings.Contains(filename, "/golang.org/")
+}
+
+// TODO: create a permission class.
+func isPermissionAllowed(m map[string]permission, depName string) bool {
+	if p, ok := m[depName]; ok {
+		return p == permissionAllowed
+	}
+
+	if strings.HasPrefix(depName, "github.com/") {
+		// Try a subset, github.com/google/go-github/v38/github
+		parts := strings.Split(depName, "/")
+		if len(parts) < 3 {
+			return false
+		}
+		if p, ok := m[strings.Join(parts[:3], "/")]; ok {
+			return p == permissionAllowed
+		}
+	}
+
+	// No permission provided. Default is false if inheritance is not taken into account.
+	return false
+}
+
+func isContextPermissionAllowed(m map[string]permission, depName string) bool {
+	if p, ok := m[depName]; ok {
+		return p == permissionAllowed
+	}
+	if strings.HasPrefix(depName, "github.com/") {
+		// Try a subset, github.com/google/go-github/v38/github
+		parts := strings.Split(depName, "/")
+		if len(parts) < 3 {
+			return true
+		}
+		if p, ok := m[strings.Join(parts[:3], "/")]; ok {
+			return p == permissionAllowed
+		}
+	}
+	// No permission provided. Default is true.
+	return true
 }
 
 // TODO: fix with StartsWith and query once to learn the path.
 func is3PDependency(filename string) bool {
-	return strings.Contains(filename, "/pkg/mod/")
+	return !isRuntime(filename) && strings.Contains(filename, "/pkg/mod/")
 }
 
 func getPackageName(packageName string) string {
@@ -147,8 +376,8 @@ func getPackageName(packageName string) string {
 }
 
 func main() {
-	//hooks.SetManager(&manager)
-	godep2.TestEnv("FROM_MAIN")
+	hooks.SetManager(&manager)
+	godep2.TestEnv("FROM_MAIN_DEP2")
 	godep2.TestEnvThruDep3("MAIN_DEP2_DEP3")
 	os.Getenv("FROM_MAIN_REALLY")
 	opts := options.New()
