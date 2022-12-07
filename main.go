@@ -47,16 +47,11 @@ const (
 )
 
 var (
-	times   [1000]int64
+	times   [5000]int64
 	times_c = 0
 )
 
-var (
-	localProgram  = "<local>"
-	ambientPolicy = policyDefaultDisallow
-	depsPolicy    = policyDefaultAllow // Note: inherited
-
-)
+var localProgram = "<local>"
 
 type access int
 
@@ -64,6 +59,17 @@ const (
 	accessWrite access = 1
 	accessRead  access = 2
 	accessExec  access = 4
+	accessNone  access = 0
+)
+
+type resourceType int
+
+const (
+	resourceTypeEnv resourceType = 1
+	resourceTypeFs  resourceType = 2
+	resourceTypeNet resourceType = 3
+	// resourceTypeRpc resourceType = 4
+	resourceTypeProcess resourceType = 4
 )
 
 type (
@@ -73,13 +79,79 @@ type (
 
 type (
 	dependencyName string
-	p              struct {
-		dangerousPermissions perm
-		contextPermissions   perm
+	p              map[resourceType]struct {
+		dangerousPermissions *perm
+		contextPermissions   *perm
 	}
 )
 type perms map[dependencyName]p
 
+var (
+	ambientPolicy = policyDefaultDisallow
+	depsPolicy    = policyDefaultDisallow // Note: inherited. Useful only to validate when doing the direct deps definition. Maybe remove it (?)
+
+	// Should use lists since this data is really sparse. This format is fine for the config file, though.
+	definedPerms = perms{
+		// TODO: remove dependencyName
+		"<local>": p{
+			resourceTypeEnv: {
+				contextPermissions: &perm{
+					"*": accessRead,
+				},
+			},
+			resourceTypeFs: {
+				contextPermissions: &perm{
+					"*": accessRead,
+				},
+			},
+		},
+		"github.com/laurentsimon/godep2": p{
+			// dangerousPermissions: perm{
+			// 	"*": accessRead,
+			// },
+			resourceTypeEnv: {
+				contextPermissions: &perm{
+					"*": accessRead,
+				},
+			},
+		},
+		"github.com/laurentsimon/godep3": p{
+			resourceTypeEnv: {
+				contextPermissions: &perm{
+					"FROM_OPTIONS": accessRead,
+				},
+			},
+		},
+		"github.com/spf13/cobra": p{ // Can use the needs.x in the future.
+			resourceTypeEnv: {
+				contextPermissions: &perm{
+					"*": accessRead,
+				},
+			},
+		},
+		"github.com/google/go-containerregistry": p{
+			resourceTypeEnv: {
+				contextPermissions: &perm{
+					"HOME":          accessRead,
+					"DOCKER_CONFIG": accessRead,
+					"GODEBUG":       accessRead,
+					"PATH":          accessRead,
+				},
+			},
+		},
+		"github.com/docker/docker-credential-helpers": p{
+			resourceTypeEnv: {
+				contextPermissions: &perm{
+					"HOME":          accessRead,
+					"DOCKER_CONFIG": accessRead,
+					"GODEBUG":       accessRead,
+				},
+			},
+		},
+	}
+)
+
+/*
 var (
 
 	// env variables.
@@ -103,14 +175,15 @@ var (
 		localProgram: permissionAllowed,
 	}
 )
+*/
 
 func (l *testHook) Getenv(key string) {
-	return // disable for testing
+	// return // disable for testing
 	fmt.Printf("Getenv(%s)\n", key)
 	// mylog("stack info:")
 	start := time.Now()
 
-	computePermissions(key, envAllowedDangerousDeps, envContextPermissions)
+	computePermissions(key, resourceTypeEnv, accessRead)
 
 	elapsed := time.Since(start)
 	times[times_c] = elapsed.Nanoseconds()
@@ -125,7 +198,7 @@ func (l *testHook) Environ() {
 	start := time.Now()
 
 	// TODO: Do this properly.
-	computePermissions("*", envAllowedDangerousDeps, envContextPermissions)
+	computePermissions("*", resourceTypeEnv, accessRead)
 
 	elapsed := time.Since(start)
 	times[times_c] = elapsed.Nanoseconds()
@@ -134,11 +207,13 @@ func (l *testHook) Environ() {
 }
 
 func (l *testHook) Open(file string, flag int, perms fs.FileMode) {
+	// disabled
+	return
 	fmt.Printf("Open(%s)\n", file)
 	start := time.Now()
 
 	// TODO: Do this properly.
-	computePermissions(file, fileReadAllowedDangerousDeps, fileReadContextPermissions)
+	computePermissions(file, resourceTypeFs, accessRead)
 
 	elapsed := time.Since(start)
 	times[times_c] = elapsed.Nanoseconds()
@@ -155,12 +230,10 @@ var (
 var compilerPath = "/usr/local/google/home/laurentsimon/sandboxing/golang/go/"
 
 func mylog(args ...string) {
-	// fmt.Println(args)
+	fmt.Println(args)
 }
 
-func computePermissions(key string, dangerousPermissions map[string]permission,
-	contextPermissions map[string]permission,
-) {
+func computePermissions(key string, resType resourceType, req access) {
 	pc := make([]uintptr, 1000)
 	// Skip this function and the runtime.caller itself.
 	n := runtime.Callers(2, pc)
@@ -209,13 +282,13 @@ func computePermissions(key string, dangerousPermissions map[string]permission,
 	mylog(" . caller dep is", depName)
 	// TODO: proper function for this.
 	var dangerousAllowed bool
+	dangerousPermissions := getDangerousPermissionsForDep(key, resType, depName)
+	// TODO: simplify
 	if ambientPolicy == policyDefaultAllow && depsPolicy == policyDefaultAllow {
-		dangerousAllowed = true
-		// if not allowed by default, we need explicit permission set.
-		v, _ := dangerousPermissions[depName]
-		dangerousAllowed = v == permissionAllowed
+		dangerousAllowed = isPermissionAllowed2(dangerousPermissions, req, true)
 	} else {
-		dangerousAllowed = isPermissionAllowed(dangerousPermissions, depName)
+		// dangerousAllowed = isPermissionAllowed(dangerousPermissions, depName)
+		dangerousAllowed = isPermissionAllowed2(dangerousPermissions, req, false)
 	}
 	mylog(" . Allowed dangerous:", strconv.FormatBool(dangerousAllowed))
 
@@ -273,16 +346,17 @@ func computePermissions(key string, dangerousPermissions map[string]permission,
 		// callbacks.
 		// Note: this code should be properly seperated.
 		if isLocal {
+			contextPermissions := getContextPermissionsForDep(key, resType, localProgram)
 			if ambientPolicy == policyDefaultDisallow {
 				if !foundLocal {
 					foundLocal = true
-					if !isPermissionAllowed(contextPermissions, localProgram) {
+					if !isPermissionAllowed2(contextPermissions, req, false) {
 						mylog(" . Allowed context: false -", localProgram)
 						break
 					}
 				}
 			} else {
-				if !isContextPermissionAllowed(contextPermissions, localProgram) {
+				if !isPermissionAllowed2(contextPermissions, req, true) {
 					mylog(" . Allowed context: false -", localProgram)
 					break
 				}
@@ -291,6 +365,7 @@ func computePermissions(key string, dangerousPermissions map[string]permission,
 
 		packageName := getPackageName(curr.Function)
 		if currIs3P {
+			contextPermissions := getContextPermissionsForDep(key, resType, packageName)
 			if !found3P && !prevIs3P {
 				mylog(" . Direct dep -", packageName)
 			}
@@ -298,18 +373,18 @@ func computePermissions(key string, dangerousPermissions map[string]permission,
 				if !found3P && !prevIs3P {
 					// Direct dependency.
 					found3P = true
-					if !isPermissionAllowed(contextPermissions, packageName) {
+					if !isPermissionAllowed2(contextPermissions, req, false) {
 						mylog(" . Allowed context: false (direct) -", packageName)
 						break
 					}
 				} else {
-					if !isContextPermissionAllowed(contextPermissions, packageName) {
+					if !isPermissionAllowed2(contextPermissions, req, true) {
 						mylog(" . Allowed context: false -", packageName)
 						break
 					}
 				}
 			} else {
-				if !isContextPermissionAllowed(contextPermissions, packageName) {
+				if !isPermissionAllowed2(contextPermissions, req, true) {
 					mylog(" . Allowed context: false -", packageName)
 					break
 				}
@@ -395,6 +470,111 @@ func computePermissions(key string, dangerousPermissions map[string]permission,
 	// mylog(" . caller dep is", depName)
 }
 
+func getDangerousPermissionsForDep(resName string, resType resourceType, depName string) *access {
+	e, ok := definedPerms[dependencyName(depName)]
+	if !ok {
+		if strings.HasPrefix(depName, "github.com/") {
+			// Try a subset, github.com/google/go-github/v38/github
+			parts := strings.Split(depName, "/")
+			if len(parts) < 3 {
+				return nil
+			}
+			e, ok = definedPerms[dependencyName(strings.Join(parts[:3], "/"))]
+		}
+		if !ok {
+			return nil
+		}
+	}
+
+	v, ok := e[resType]
+	if !ok {
+		return nil
+	}
+
+	if v.dangerousPermissions == nil {
+		return nil
+	}
+
+	r, ok := (*v.dangerousPermissions)[resourceName(resName)]
+	if !ok {
+		// Need to handle globs. Probably need to change function completely
+		// to iterate over the perm, instead of returning the access.
+		if r, ok = (*v.dangerousPermissions)["*"]; ok {
+			return &r
+		}
+		return nil
+	}
+	return &r
+}
+
+func getContextPermissionsForDep(resName string, resType resourceType, depName string) *access {
+	e, ok := definedPerms[dependencyName(depName)]
+	if !ok {
+		if strings.HasPrefix(depName, "github.com/") {
+			// Try a subset, github.com/google/go-github/v38/github
+			parts := strings.Split(depName, "/")
+			if len(parts) < 3 {
+				return nil
+			}
+			e, ok = definedPerms[dependencyName(strings.Join(parts[:3], "/"))]
+		}
+		if !ok {
+			return nil
+		}
+	}
+
+	v, ok := e[resType]
+	if !ok {
+		return nil
+	}
+
+	if v.contextPermissions == nil {
+		return nil
+	}
+
+	r, ok := (*v.contextPermissions)[resourceName(resName)]
+	if !ok {
+		// Need to handle globs. Probably need to change function completely
+		// to iterate over the perm, instead of returning the access.
+		if r, ok = (*v.contextPermissions)["*"]; ok {
+			return &r
+		}
+		return nil
+	}
+	return &r
+}
+
+func getContextPermssionsForDep(resType resourceType, depName string) *perm {
+	e, ok := definedPerms[dependencyName(depName)]
+	if !ok {
+		if strings.HasPrefix(depName, "github.com/") {
+			// Try a subset, github.com/google/go-github/v38/github
+			parts := strings.Split(depName, "/")
+			if len(parts) < 3 {
+				return nil
+			}
+			e, ok = definedPerms[dependencyName(strings.Join(parts[:3], "/"))]
+		}
+		if !ok {
+			return nil
+		}
+	}
+
+	v, ok := e[resType]
+	if !ok {
+		return nil
+	}
+
+	return v.contextPermissions
+}
+
+func isPermissionAllowed2(def *access, req access, defValue bool) bool {
+	if def != nil {
+		return (*def & req) != accessNone
+	}
+	return defValue
+}
+
 func isRuntime(filename string) bool {
 	return strings.HasPrefix(filename, compilerPath) ||
 		strings.Contains(filename, "/golang.org/")
@@ -444,8 +624,8 @@ func is3PDependency(filename string) bool {
 	return !isRuntime(filename) && strings.Contains(filename, "/pkg/mod/")
 }
 
-func getPackageName(packageName string) string {
-	parts := strings.Split(packageName, ".")
+func getPackageName(funcName string) string {
+	parts := strings.Split(funcName, ".")
 	pl := len(parts)
 
 	if len(parts[pl-2]) == 0 {
