@@ -99,11 +99,11 @@ var (
 					"*": accessRead,
 				},
 			},
-			resourceTypeFs: {
-				contextPermissions: &perm{
-					"*": accessRead,
-				},
-			},
+			// resourceTypeFs: {
+			// 	contextPermissions: &perm{
+			// 		"*": accessRead,
+			// 	},
+			// },
 		},
 		"github.com/laurentsimon/godep2": p{
 			// dangerousPermissions: perm{
@@ -178,7 +178,7 @@ var (
 */
 
 func (l *testHook) Getenv(key string) {
-	// return // disable for testing
+	return // disable for testing
 	fmt.Printf("Getenv(%s)\n", key)
 	// mylog("stack info:")
 	start := time.Now()
@@ -208,7 +208,7 @@ func (l *testHook) Environ() {
 
 func (l *testHook) Open(file string, flag int, perms fs.FileMode) {
 	// disabled
-	return
+	// return
 	fmt.Printf("Open(%s)\n", file)
 	start := time.Now()
 
