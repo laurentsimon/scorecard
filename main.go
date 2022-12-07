@@ -18,10 +18,13 @@ package main
 import (
 	"fmt"
 	"hooks"
+	"io/fs"
 	"log"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/laurentsimon/godep2"
 	"github.com/ossf/scorecard/v4/cmd"
@@ -43,11 +46,104 @@ const (
 	permissionNotDefined permission = 3
 )
 
-func (l *testHook) Getenv(key string) {
-	fmt.Printf("hook called with '%s'\n", key)
-	// fmt.Println("stack info:")
+var (
+	times   [1000]int64
+	times_c = 0
+)
 
-	retrieveCallInfo2(key)
+var (
+	localProgram  = "<local>"
+	ambientPolicy = policyDefaultDisallow
+	depsPolicy    = policyDefaultAllow // Note: inherited
+
+)
+
+type access int
+
+const (
+	accessWrite access = 1
+	accessRead  access = 2
+	accessExec  access = 4
+)
+
+type (
+	resourceName string
+	perm         map[resourceName]access
+)
+
+type (
+	dependencyName string
+	p              struct {
+		dangerousPermissions perm
+		contextPermissions   perm
+	}
+)
+type perms map[dependencyName]p
+
+var (
+
+	// env variables.
+	envAllowedDangerousDeps = map[string]permission{"github.com/laurentsimon/godep2": permissionAllowed}
+	envContextPermissions   = map[string]permission{
+		localProgram: permissionDisallowed,
+		// "github.com/laurentsimon/godep2": permissionAllowed,
+		// "github.com/laurentsimon/godep3": permissionAllowed,
+		// "github.com/spf13/cobra":         permissionAllowed,
+		// takes carer of github.com/google/go-github/x/y
+		//"github.com/google/go-github": permissionDisallowed,
+		//"go.opencensus.io/plugin/ochttp":                   permissionAllowed,
+		//"github.com/google/go-containerregistry": permissionAllowed,
+		//"github.com/google/go-containerregistry/pkg/crane": permissionAllowed,
+		// go.opencensus.io/plugin/ochttp dependent of v38/github as permissionDiallowed
+	}
+
+	// Files.
+	fileReadAllowedDangerousDeps = map[string]permission{}
+	fileReadContextPermissions   = map[string]permission{
+		localProgram: permissionAllowed,
+	}
+)
+
+func (l *testHook) Getenv(key string) {
+	return // disable for testing
+	fmt.Printf("Getenv(%s)\n", key)
+	// mylog("stack info:")
+	start := time.Now()
+
+	computePermissions(key, envAllowedDangerousDeps, envContextPermissions)
+
+	elapsed := time.Since(start)
+	times[times_c] = elapsed.Nanoseconds()
+	times_c++
+	log.Printf("perm check took %d", elapsed.Nanoseconds())
+}
+
+func (l *testHook) Environ() {
+	// disabled for testing
+	return
+	fmt.Printf("Environ()\n")
+	start := time.Now()
+
+	// TODO: Do this properly.
+	computePermissions("*", envAllowedDangerousDeps, envContextPermissions)
+
+	elapsed := time.Since(start)
+	times[times_c] = elapsed.Nanoseconds()
+	times_c++
+	log.Printf("perm check took %d", elapsed.Nanoseconds())
+}
+
+func (l *testHook) Open(file string, flag int, perms fs.FileMode) {
+	fmt.Printf("Open(%s)\n", file)
+	start := time.Now()
+
+	// TODO: Do this properly.
+	computePermissions(file, fileReadAllowedDangerousDeps, fileReadContextPermissions)
+
+	elapsed := time.Since(start)
+	times[times_c] = elapsed.Nanoseconds()
+	times_c++
+	log.Printf("perm check took %d", elapsed.Nanoseconds())
 }
 
 var (
@@ -58,27 +154,13 @@ var (
 // TODO: get dynamically at load time.
 var compilerPath = "/usr/local/google/home/laurentsimon/sandboxing/golang/go/"
 
-var (
-	localProgram         = "<local>"
-	ambientPolicy        = policyDefaultDisallow
-	depsPolicy           = policyDefaultDisallow // Note: inherited
-	allowedDangerousDeps = map[string]permission{"github.com/laurentsimon/godep2": permissionAllowed}
-	// allowedDangerousDeps = map[string]permission{"github.com/laurentsimon/godep2": permissionAllowed}
-	contextPermissions = map[string]permission{
-		localProgram:                     permissionAllowed,
-		"github.com/laurentsimon/godep2": permissionAllowed,
-		"github.com/laurentsimon/godep3": permissionAllowed,
-		"github.com/spf13/cobra":         permissionAllowed,
-		// takes carer of github.com/google/go-github/x/y
-		//"github.com/google/go-github": permissionDisallowed,
-		//"go.opencensus.io/plugin/ochttp":                   permissionAllowed,
-		"github.com/google/go-containerregistry": permissionAllowed,
-		//"github.com/google/go-containerregistry/pkg/crane": permissionAllowed,
-		// go.opencensus.io/plugin/ochttp dependent of v38/github as permissionDiallowed
-	}
-)
+func mylog(args ...string) {
+	// fmt.Println(args)
+}
 
-func retrieveCallInfo2(key string) {
+func computePermissions(key string, dangerousPermissions map[string]permission,
+	contextPermissions map[string]permission,
+) {
 	pc := make([]uintptr, 1000)
 	// Skip this function and the runtime.caller itself.
 	n := runtime.Callers(2, pc)
@@ -94,10 +176,10 @@ func retrieveCallInfo2(key string) {
 
 	// TODO: query once and make it a double-linked list ?
 	// if key == "GODEBUG" {
-	// 	fmt.Println("\n\n")
+	// 	mylog("\n\n")
 	// }
-	// fmt.Println(pc)
-	// fmt.Println(rpc)
+	// mylog(pc)
+	// mylog(rpc)
 	// Get the direct caller package.
 	// Only needed if the main program or some packages have context-less permissions.
 	frames := runtime.CallersFrames(pc)
@@ -106,7 +188,7 @@ func retrieveCallInfo2(key string) {
 	for {
 		curr, more := frames.Next()
 		packageName := getPackageName(curr.Function)
-		// if key == "GODEBUG" {
+		// if key == "ENABLE_SARIF" {
 		// 	fmt.Printf("- %d - %s | %s | %s:%d \n", pc[i], packageName, curr.Function, curr.File, curr.Line)
 		// }
 		i++
@@ -124,18 +206,18 @@ func retrieveCallInfo2(key string) {
 		}
 	}
 
-	fmt.Println(" . caller dep is", depName)
+	mylog(" . caller dep is", depName)
 	// TODO: proper function for this.
 	var dangerousAllowed bool
 	if ambientPolicy == policyDefaultAllow && depsPolicy == policyDefaultAllow {
 		dangerousAllowed = true
 		// if not allowed by default, we need explicit permission set.
-		v, _ := allowedDangerousDeps[depName]
+		v, _ := dangerousPermissions[depName]
 		dangerousAllowed = v == permissionAllowed
 	} else {
-		dangerousAllowed = isPermissionAllowed(allowedDangerousDeps, depName)
+		dangerousAllowed = isPermissionAllowed(dangerousPermissions, depName)
 	}
-	fmt.Println(" . Allowed dangerous:", dangerousAllowed)
+	mylog(" . Allowed dangerous:", strconv.FormatBool(dangerousAllowed))
 
 	/*
 		ambientPolicy: allow
@@ -195,13 +277,13 @@ func retrieveCallInfo2(key string) {
 				if !foundLocal {
 					foundLocal = true
 					if !isPermissionAllowed(contextPermissions, localProgram) {
-						fmt.Println(" . Allowed context: false -", localProgram)
+						mylog(" . Allowed context: false -", localProgram)
 						break
 					}
 				}
 			} else {
 				if !isContextPermissionAllowed(contextPermissions, localProgram) {
-					fmt.Println(" . Allowed context: false -", localProgram)
+					mylog(" . Allowed context: false -", localProgram)
 					break
 				}
 			}
@@ -210,25 +292,25 @@ func retrieveCallInfo2(key string) {
 		packageName := getPackageName(curr.Function)
 		if currIs3P {
 			if !found3P && !prevIs3P {
-				fmt.Println(" . Direct dep -", packageName)
+				mylog(" . Direct dep -", packageName)
 			}
 			if depsPolicy == policyDefaultDisallow {
 				if !found3P && !prevIs3P {
 					// Direct dependency.
 					found3P = true
 					if !isPermissionAllowed(contextPermissions, packageName) {
-						fmt.Println(" . Allowed context: false (direct) -", packageName)
+						mylog(" . Allowed context: false (direct) -", packageName)
 						break
 					}
 				} else {
 					if !isContextPermissionAllowed(contextPermissions, packageName) {
-						fmt.Println(" . Allowed context: false -", packageName)
+						mylog(" . Allowed context: false -", packageName)
 						break
 					}
 				}
 			} else {
 				if !isContextPermissionAllowed(contextPermissions, packageName) {
-					fmt.Println(" . Allowed context: false -", packageName)
+					mylog(" . Allowed context: false -", packageName)
 					break
 				}
 			}
@@ -248,11 +330,11 @@ func retrieveCallInfo2(key string) {
 		// }
 
 		// if currIs3P && isAllowed(contextPermissions, packageName) {
-		// 	fmt.Println(" . Allowed context: false -", packageName)
+		// 	mylog(" . Allowed context: false -", packageName)
 		// 	break
 		// } else if !isRuntime && !isAllowed(contextPermissions, localProgram) {
 		// 	// Local, ie main program
-		// 	fmt.Println(" . Allowed context: false -", localProgram)
+		// 	mylog(" . Allowed context: false -", localProgram)
 		// 	break
 		// }
 
@@ -265,7 +347,7 @@ func retrieveCallInfo2(key string) {
 	}
 
 	if allowed {
-		fmt.Println(" . Allowed context: true")
+		mylog(" . Allowed context: true")
 	}
 
 	if !dangerousAllowed && !allowed {
@@ -309,8 +391,8 @@ func retrieveCallInfo2(key string) {
 	// 	}
 
 	// }
-	// fmt.Println(" . direct dep is", directDepName)
-	// fmt.Println(" . caller dep is", depName)
+	// mylog(" . direct dep is", directDepName)
+	// mylog(" . caller dep is", depName)
 }
 
 func isRuntime(filename string) bool {
@@ -384,4 +466,5 @@ func main() {
 	if err := cmd.New(opts).Execute(); err != nil {
 		log.Fatalf("error during command execution: %v", err)
 	}
+	log.Printf("times", times[:times_c])
 }
