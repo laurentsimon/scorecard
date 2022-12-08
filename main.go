@@ -77,35 +77,124 @@ type (
 	perm         map[resourceName]access
 )
 
+type permsByResType map[resourceType]p
+
+type p struct {
+	dangerousPermissions *perm
+	contextPermissions   *perm
+}
+
 type (
 	dependencyName string
-	p              map[resourceType]struct {
-		dangerousPermissions *perm
-		contextPermissions   *perm
-	}
 )
-type perms map[dependencyName]p
+
+var permsNone = permsByResType{
+	resourceTypeEnv: p{
+		dangerousPermissions: &perm{
+			"*": accessNone,
+		},
+		contextPermissions: &perm{
+			"*": accessNone,
+		},
+	},
+	resourceTypeFs: p{
+		dangerousPermissions: &perm{
+			"*": accessNone,
+		},
+		contextPermissions: &perm{
+			"*": accessNone,
+		},
+	},
+	resourceTypeNet: p{
+		dangerousPermissions: &perm{
+			"*": accessNone,
+		},
+		contextPermissions: &perm{
+			"*": accessNone,
+		},
+	},
+	resourceTypeProcess: p{
+		dangerousPermissions: &perm{
+			"*": accessNone,
+		},
+		contextPermissions: &perm{
+			"*": accessNone,
+		},
+	},
+}
+
+type perms map[dependencyName]permsByResType
+
+type permMatches func(val, req string) bool
+
+func envMatches(val, req string) bool {
+	return val == "*" || val == req
+}
+
+func fsMatches(val, req string) bool {
+	// /etc/ssl/certs/* /etc/ssl/certs
+	// TODO: this function needs proper testing.
+	if val == "*" {
+		return true
+	}
+
+	if strings.HasSuffix(val, "*") {
+		val = val[:len(val)-1]
+	}
+
+	// WARNING: do not remove the `/`.
+	if req == val {
+		return true
+	}
+
+	if val[len(val)-1] != os.PathSeparator {
+		val += string(os.PathSeparator)
+	}
+	if strings.HasPrefix(req, val) {
+		return true
+	}
+
+	if req[len(req)-1] != os.PathSeparator {
+		req += string(os.PathSeparator)
+	}
+	return strings.HasPrefix(req, val)
+	// match, err := filepath.Match(val, req)
+	// if err != nil {
+	// 	// we are conservative
+	// 	return true
+	// }
+}
 
 var (
 	ambientPolicy = policyDefaultDisallow
-	depsPolicy    = policyDefaultDisallow // Note: inherited. Useful only to validate when doing the direct deps definition. Maybe remove it (?)
+	depsPolicy    = policyDefaultDisallow // Note: inherited. Useful only to validate when doing the direct deps definition. Maybe remove it or only for debugging(?)
 
 	// Should use lists since this data is really sparse. This format is fine for the config file, though.
 	definedPerms = perms{
 		// TODO: remove dependencyName
-		"<local>": p{
+		// PHASE 1: abien = disallow
+		"<local>": permsByResType{
 			resourceTypeEnv: {
 				contextPermissions: &perm{
 					"*": accessRead,
 				},
 			},
-			// resourceTypeFs: {
-			// 	contextPermissions: &perm{
-			// 		"*": accessRead,
-			// 	},
-			// },
+			resourceTypeFs: {
+				contextPermissions: &perm{
+					"/etc/nsswitch.conf": accessRead,
+					"/etc/resolv.conf":   accessRead,
+					// TODO: verify it works properly
+					"/etc/ssl/certs/*":             accessRead,
+					"/etc/pki/tls/*":               accessRead,
+					"/system/etc/security/cacerts": accessRead,
+					"/tmp/":                        accessRead,
+					// TODO: need to support env variable in config file.
+					"/usr/local/google/home/laurentsimon/.docker/*": accessRead,
+				},
+			},
 		},
-		"github.com/laurentsimon/godep2": p{
+		// PHASE 2: depenedncy disallow
+		"github.com/laurentsimon/godep2": permsByResType{
 			// dangerousPermissions: perm{
 			// 	"*": accessRead,
 			// },
@@ -115,21 +204,35 @@ var (
 				},
 			},
 		},
-		"github.com/laurentsimon/godep3": p{
+		"github.com/laurentsimon/godep3": permsByResType{
 			resourceTypeEnv: {
 				contextPermissions: &perm{
 					"FROM_OPTIONS": accessRead,
 				},
 			},
 		},
-		"github.com/spf13/cobra": p{ // Can use the needs.x in the future.
+		"github.com/spf13/cobra": permsByResType{ // Can use the needs.x in the future.
 			resourceTypeEnv: {
 				contextPermissions: &perm{
 					"*": accessRead,
 				},
 			},
+			resourceTypeFs: {
+				contextPermissions: &perm{
+					"/tmp/": accessRead,
+				},
+			},
 		},
-		"github.com/google/go-containerregistry": p{
+		"github.com/google/go-github": permsNone,
+		"github.com/google/go-containerregistry": permsByResType{
+			resourceTypeFs: {
+				contextPermissions: &perm{
+					// TODO: cleanup this up. Here we expect the use to write `fs:` or `fs: none`
+					//"*": accessNone,
+					// Need a re-use keyword
+					"/usr/local/google/home/laurentsimon/.docker/config.json": accessRead,
+				},
+			},
 			resourceTypeEnv: {
 				contextPermissions: &perm{
 					"HOME":          accessRead,
@@ -139,17 +242,62 @@ var (
 				},
 			},
 		},
-		"github.com/docker/docker-credential-helpers": p{
-			resourceTypeEnv: {
-				contextPermissions: &perm{
-					"HOME":          accessRead,
-					"DOCKER_CONFIG": accessRead,
-					"GODEBUG":       accessRead,
+		"cloud.google.com/go/bigquery":                  permsNone,
+		"cloud.google.com/go/pubsub":                    permsNone,
+		"contrib.go.opencensus.io/exporter/stackdriver": permsNone,
+		"github.com/Masterminds/semver/v3":              permsNone,
+		"github.com/bombsimon/logrusr/v2":               permsNone,
+		"github.com/bradleyfalzon/ghinstallation/v2":    permsNone,
+		"github.com/caarlos0/env":                       permsNone,
+		"github.com/go-git/go-git":                      permsNone,
+		"github.com/go-logr/logr":                       permsNone,
+		"github.com/gobwas/glob":                        permsNone,
+		"github.com/golang/mock":                        permsNone,
+		"github.com/google/go-cmp":                      permsNone,
+		"github.com/grafeas/kritis":                     permsNone,
+		"github.com/h2non/filetype":                     permsNone,
+		"github.com/jszwec/csvutil":                     permsNone,
+		"github.com/mcuadros/go-jsonschema-generator":   permsNone,
+		"github.com/moby/buildkit":                      permsNone,
+		"github.com/olekukonko/tablewriter":             permsNone,
+		"github.com/onsi/ginkgo":                        permsNone,
+		"github.com/onsi/gomega":                        permsNone,
+		"github.com/rhysd/actionlint":                   permsNone,
+		"github.com/shurcooL/githubv4":                  permsNone,
+		"github.com/sirupsen/logrus":                    permsNone,
+		"github.com/xanzy/go-gitlab":                    permsNone,
+		"github.com/xeipuuv/gojsonschema":               permsNone,
+		"go.opencensus.io":                              permsNone,
+		"gocloud.dev":                                   permsNone,
+		"golang.org/x/exp":                              permsNone,
+		"golang.org/x/text":                             permsNone,
+		"golang.org/x/tools":                            permsNone,
+		"google.golang.org/genproto":                    permsNone,
+		"google.golang.org/protobuf":                    permsNone,
+		"gopkg.in/yaml.v2":                              permsNone,
+		"gopkg.in/yaml.v3":                              permsNone,
+		"gotest.tools":                                  permsNone,
+		"mvdan.cc/sh/v3":                                permsNone,
+		"sigs.k8s.io/release-utils":                     permsNone,
+		/*
+			"github.com/docker/docker-credential-helpers": p{
+				resourceTypeEnv: {
+					contextPermissions: &perm{
+						"HOME":          accessRead,
+						"DOCKER_CONFIG": accessRead,
+						"GODEBUG":       accessRead,
+					},
 				},
-			},
-		},
+			},*/
 	}
 )
+
+/*
+insights:
+env: GODEBUG, HOME, PATH
+files: /etc/nsswitch.conf isRuntime not detected properly coz runtime
+.init functio need test
+*/
 
 /*
 var (
@@ -183,7 +331,7 @@ func (l *testHook) Getenv(key string) {
 	// mylog("stack info:")
 	start := time.Now()
 
-	computePermissions(key, resourceTypeEnv, accessRead)
+	computePermissions(key, envMatches, resourceTypeEnv, accessRead)
 
 	elapsed := time.Since(start)
 	times[times_c] = elapsed.Nanoseconds()
@@ -198,7 +346,7 @@ func (l *testHook) Environ() {
 	start := time.Now()
 
 	// TODO: Do this properly.
-	computePermissions("*", resourceTypeEnv, accessRead)
+	computePermissions("*", envMatches, resourceTypeEnv, accessRead)
 
 	elapsed := time.Since(start)
 	times[times_c] = elapsed.Nanoseconds()
@@ -213,7 +361,7 @@ func (l *testHook) Open(file string, flag int, perms fs.FileMode) {
 	start := time.Now()
 
 	// TODO: Do this properly.
-	computePermissions(file, resourceTypeFs, accessRead)
+	computePermissions(file, fsMatches, resourceTypeFs, accessRead)
 
 	elapsed := time.Since(start)
 	times[times_c] = elapsed.Nanoseconds()
@@ -233,7 +381,7 @@ func mylog(args ...string) {
 	fmt.Println(args)
 }
 
-func computePermissions(key string, resType resourceType, req access) {
+func computePermissions(key string, fmatch permMatches, resType resourceType, req access) {
 	pc := make([]uintptr, 1000)
 	// Skip this function and the runtime.caller itself.
 	n := runtime.Callers(2, pc)
@@ -282,7 +430,9 @@ func computePermissions(key string, resType resourceType, req access) {
 	mylog(" . caller dep is", depName)
 	// TODO: proper function for this.
 	var dangerousAllowed bool
-	dangerousPermissions := getDangerousPermissionsForDep(key, resType, depName)
+
+	// TODO: verify that i's orrect for dangerous perms if error in fmatch()
+	dangerousPermissions := getDangerousPermissionsForDep(key, fmatch, resType, depName)
 	// TODO: simplify
 	if ambientPolicy == policyDefaultAllow && depsPolicy == policyDefaultAllow {
 		dangerousAllowed = isPermissionAllowed2(dangerousPermissions, req, true)
@@ -330,15 +480,17 @@ func computePermissions(key string, resType resourceType, req access) {
 		// 	break
 		// }
 
-		// if key == "GODEBUG" {
-		// 	fmt.Printf("- %d - %s | %s | %s:%d \n", rpc[i], packageName, curr.Function, curr.File, curr.Line)
-		// }
-		i++
-
 		// Can cache these.
 		currIs3P := is3PDependency(curr.File)
 		isRuntime := isRuntime(curr.File)
 		isLocal := !currIs3P && !isRuntime
+
+		// isRuntime shoudl be tru but is false when the call is made
+		// from the runtime at load time, before the main program runs.
+		// if key == "/etc/nsswitch.conf" {
+		// 	fmt.Printf("- %d - %s | %s | %s | %v \n", rpc[i], getPackageName(curr.Function), curr.Function, curr.File, isLocal)
+		// }
+		i++
 
 		// Assuming default policy is disallow.
 		// here we find the local package toop of the stack
@@ -346,7 +498,7 @@ func computePermissions(key string, resType resourceType, req access) {
 		// callbacks.
 		// Note: this code should be properly seperated.
 		if isLocal {
-			contextPermissions := getContextPermissionsForDep(key, resType, localProgram)
+			contextPermissions := getContextPermissionsForDep(key, fmatch, resType, localProgram)
 			if ambientPolicy == policyDefaultDisallow {
 				if !foundLocal {
 					foundLocal = true
@@ -365,7 +517,7 @@ func computePermissions(key string, resType resourceType, req access) {
 
 		packageName := getPackageName(curr.Function)
 		if currIs3P {
-			contextPermissions := getContextPermissionsForDep(key, resType, packageName)
+			contextPermissions := getContextPermissionsForDep(key, fmatch, resType, packageName)
 			if !found3P && !prevIs3P {
 				mylog(" . Direct dep -", packageName)
 			}
@@ -470,7 +622,7 @@ func computePermissions(key string, resType resourceType, req access) {
 	// mylog(" . caller dep is", depName)
 }
 
-func getDangerousPermissionsForDep(resName string, resType resourceType, depName string) *access {
+func getDangerousPermissionsForDep(resName string, fmatch permMatches, resType resourceType, depName string) *access {
 	e, ok := definedPerms[dependencyName(depName)]
 	if !ok {
 		if strings.HasPrefix(depName, "github.com/") {
@@ -499,15 +651,22 @@ func getDangerousPermissionsForDep(resName string, resType resourceType, depName
 	if !ok {
 		// Need to handle globs. Probably need to change function completely
 		// to iterate over the perm, instead of returning the access.
-		if r, ok = (*v.dangerousPermissions)["*"]; ok {
-			return &r
+		// TODO: use arrays.
+		for kk, vv := range *v.dangerousPermissions {
+			if fmatch(string(kk), resName) {
+				return &vv
+			}
 		}
+
+		// if r, ok = (*v.dangerousPermissions)["*"]; ok {
+		// 	return &r
+		// }
 		return nil
 	}
 	return &r
 }
 
-func getContextPermissionsForDep(resName string, resType resourceType, depName string) *access {
+func getContextPermissionsForDep(resName string, fmatch permMatches, resType resourceType, depName string) *access {
 	e, ok := definedPerms[dependencyName(depName)]
 	if !ok {
 		if strings.HasPrefix(depName, "github.com/") {
@@ -536,9 +695,14 @@ func getContextPermissionsForDep(resName string, resType resourceType, depName s
 	if !ok {
 		// Need to handle globs. Probably need to change function completely
 		// to iterate over the perm, instead of returning the access.
-		if r, ok = (*v.contextPermissions)["*"]; ok {
-			return &r
+		for kk, vv := range *v.contextPermissions {
+			if fmatch(string(kk), resName) {
+				return &vv
+			}
 		}
+		/*if r, ok = (*v.contextPermissions)["*"]; ok {
+			return &r
+		}*/
 		return nil
 	}
 	return &r
@@ -638,6 +802,8 @@ func getPackageName(funcName string) string {
 }
 
 func main() {
+	// fmt.Println(fsMatches("/etc/ssl/certs/*", "/etc/ssl/certs"))
+	// os.Exit(2)
 	hooks.SetManager(&manager)
 	godep2.TestEnv("FROM_MAIN_DEP2")
 	godep2.TestEnvThruDep3("MAIN_DEP2_DEP3")
