@@ -32,18 +32,7 @@ import (
 )
 
 type (
-	testHook   struct{}
-	policy     int
-	permission int
-)
-
-const (
-	policyDefaultAllow    policy = 1
-	policyDefaultDisallow policy = 2
-
-	permissionAllowed    permission = 1
-	permissionDisallowed permission = 2
-	permissionNotDefined permission = 3
+	testHook struct{}
 )
 
 var (
@@ -52,41 +41,6 @@ var (
 )
 
 var localProgram = "<local>"
-
-type access int
-
-const (
-	accessWrite access = 1
-	accessRead  access = 2
-	accessExec  access = 4
-	accessNone  access = 0
-)
-
-type resourceType int
-
-const (
-	resourceTypeEnv resourceType = 1
-	resourceTypeFs  resourceType = 2
-	resourceTypeNet resourceType = 3
-	// resourceTypeRpc resourceType = 4
-	resourceTypeProcess resourceType = 4
-)
-
-type (
-	resourceName string
-	perm         map[resourceName]access
-)
-
-type permsByResType map[resourceType]p
-
-type p struct {
-	dangerousPermissions *perm
-	contextPermissions   *perm
-}
-
-type (
-	dependencyName string
-)
 
 var permsNone = permsByResType{
 	resourceTypeEnv: p{
@@ -122,8 +76,6 @@ var permsNone = permsByResType{
 		},
 	},
 }
-
-type perms map[dependencyName]permsByResType
 
 type permMatches func(val, req string) bool
 
@@ -812,5 +764,5 @@ func main() {
 	if err := cmd.New(opts).Execute(); err != nil {
 		log.Fatalf("error during command execution: %v", err)
 	}
-	log.Printf("times", times[:times_c])
+	log.Println("times", times[:times_c])
 }

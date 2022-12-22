@@ -1,0 +1,6 @@
+version: 1
+default: allow
+permissions:
+  ambient: none
+  github.com/google/go-github: none
+  github.com/google/go-github:

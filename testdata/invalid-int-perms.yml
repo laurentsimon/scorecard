@@ -1,0 +1,3 @@
+version: 1
+default: allow
+permissions: 123
