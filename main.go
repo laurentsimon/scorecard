@@ -16,6 +16,8 @@
 package main
 
 import (
+	_ "embed"
+	"encoding/json"
 	"fmt"
 	"hooks"
 	"io/fs"
@@ -40,7 +42,7 @@ var (
 	times_c = 0
 )
 
-var localProgram = "<local>"
+var localProgram = string(ambientAuthority)
 
 type permMatches func(val, req string) bool
 
@@ -82,15 +84,35 @@ func fsMatches(val, req string) bool {
 	// }
 }
 
-var (
-	ambientPolicy = policyDefaultDisallow
-	depsPolicy    = policyDefaultDisallow // Note: inherited. Useful only to validate when doing the direct deps definition. Maybe remove it or only for debugging(?)
+//go:embed go.perm.yml
+var b []byte
 
-	// Should use lists since this data is really sparse. This format is fine for the config file, though.
+var permissionManager *permissionsManager
+
+func init() {
+	var err error
+	permissionManager, err = NewPermissionsFromData(b)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(prettyPrint(*permissionManager))
+	// panic("end")
+}
+
+func prettyPrint(i interface{}) string {
+	s, _ := json.MarshalIndent(i, "", "\t")
+	return string(s)
+}
+
+// ambientPolicy = policyDefaultDisallow //*pp.Default           // policyDefaultDisallow
+var depsPolicy = policyDefaultAllow // Note: inherited. Useful only to validate when doing the direct deps definition. Maybe remove it or only for debugging(?)
+// Should use lists since this data is really sparse. This format is fine for the config file, though.
+//definedPerms = perms{} //*pp.Permissions
+/*
 	definedPerms = perms{
 		// TODO: remove dependencyName
 		// PHASE 1: abien = disallow
-		"<local>": permsByResType{
+		ambientAuthority: permsByResType{
 			resourceTypeEnv: {
 				ContextPermissions: &perm{
 					"*": accessRead,
@@ -196,20 +218,17 @@ var (
 		"gotest.tools":                                  permsNone,
 		"mvdan.cc/sh/v3":                                permsNone,
 		"sigs.k8s.io/release-utils":                     permsNone,
-		/*
-			"github.com/docker/docker-credential-helpers": p{
-				resourceTypeEnv: {
-					ContextPermissions: &perm{
-						"HOME":          accessRead,
-						"DOCKER_CONFIG": accessRead,
-						"GODEBUG":       accessRead,
-					},
-				},
-			},*/
-	}
-)
 
-/*
+			// "github.com/docker/docker-credential-helpers": p{
+			// 	resourceTypeEnv: {
+			// 		ContextPermissions: &perm{
+			// 			"HOME":          accessRead,
+			// 			"DOCKER_CONFIG": accessRead,
+			// 			"GODEBUG":       accessRead,
+			// 		},
+			// 	},
+			// },
+	}*/ /*
 insights:
 env: GODEBUG, HOME, PATH
 files: /etc/nsswitch.conf isRuntime not detected properly coz runtime
@@ -243,7 +262,6 @@ var (
 */
 
 func (l *testHook) Getenv(key string) {
-	return // disable for testing
 	fmt.Printf("Getenv(%s)\n", key)
 	// mylog("stack info:")
 	start := time.Now()
@@ -258,7 +276,7 @@ func (l *testHook) Getenv(key string) {
 
 func (l *testHook) Environ() {
 	// disabled for testing
-	return
+	// return
 	fmt.Printf("Environ()\n")
 	start := time.Now()
 
@@ -273,7 +291,7 @@ func (l *testHook) Environ() {
 
 func (l *testHook) Open(file string, flag int, perms fs.FileMode) {
 	// disabled
-	// return
+	return
 	fmt.Printf("Open(%s)\n", file)
 	start := time.Now()
 
@@ -351,7 +369,7 @@ func computePermissions(key string, fmatch permMatches, resType resourceType, re
 	// TODO: verify that i's orrect for dangerous perms if error in fmatch()
 	DangerousPermissions := getDangerousPermissionsForDep(key, fmatch, resType, depName)
 	// TODO: simplify
-	if ambientPolicy == policyDefaultAllow && depsPolicy == policyDefaultAllow {
+	if *permissionManager.Default == policyDefaultAllow && depsPolicy == policyDefaultAllow {
 		dangerousAllowed = isPermissionAllowed2(DangerousPermissions, req, true)
 	} else {
 		// dangerousAllowed = isPermissionAllowed(DangerousPermissions, depName)
@@ -416,9 +434,10 @@ func computePermissions(key string, fmatch permMatches, resType resourceType, re
 		// Note: this code should be properly seperated.
 		if isLocal {
 			ContextPermissions := getContextPermissionsForDep(key, fmatch, resType, localProgram)
-			if ambientPolicy == policyDefaultDisallow {
+			if *permissionManager.Default == policyDefaultDisallow {
 				if !foundLocal {
 					foundLocal = true
+					// Not allowed by default.
 					if !isPermissionAllowed2(ContextPermissions, req, false) {
 						mylog(" . Allowed context: false -", localProgram)
 						break
@@ -447,6 +466,8 @@ func computePermissions(key string, fmatch permMatches, resType resourceType, re
 						break
 					}
 				} else {
+					// If the req type is not nil, we must honour the user's configuation
+					// and consider non-declared entries as not allowed.
 					if !isPermissionAllowed2(ContextPermissions, req, true) {
 						mylog(" . Allowed context: false -", packageName)
 						break
@@ -540,7 +561,10 @@ func computePermissions(key string, fmatch permMatches, resType resourceType, re
 }
 
 func getDangerousPermissionsForDep(resName string, fmatch permMatches, resType resourceType, depName string) *access {
-	e, ok := definedPerms[dependencyName(depName)]
+	if permissionManager.Permissions == nil {
+		return nil
+	}
+	e, ok := (*permissionManager.Permissions)[dependencyName(depName)]
 	if !ok {
 		if strings.HasPrefix(depName, "github.com/") {
 			// Try a subset, github.com/google/go-github/v38/github
@@ -548,7 +572,7 @@ func getDangerousPermissionsForDep(resName string, fmatch permMatches, resType r
 			if len(parts) < 3 {
 				return nil
 			}
-			e, ok = definedPerms[dependencyName(strings.Join(parts[:3], "/"))]
+			e, ok = (*permissionManager.Permissions)[dependencyName(strings.Join(parts[:3], "/"))]
 		}
 		if !ok {
 			return nil
@@ -560,7 +584,7 @@ func getDangerousPermissionsForDep(resName string, fmatch permMatches, resType r
 		return nil
 	}
 
-	if v.DangerousPermissions == nil {
+	if v.DangerousPermissions == nil || len(*v.DangerousPermissions) == 0 {
 		return nil
 	}
 
@@ -578,13 +602,17 @@ func getDangerousPermissionsForDep(resName string, fmatch permMatches, resType r
 		// if r, ok = (*v.DangerousPermissions)["*"]; ok {
 		// 	return &r
 		// }
-		return nil
+		no := accessNone
+		return &no
 	}
 	return &r
 }
 
 func getContextPermissionsForDep(resName string, fmatch permMatches, resType resourceType, depName string) *access {
-	e, ok := definedPerms[dependencyName(depName)]
+	if permissionManager.Permissions == nil {
+		return nil
+	}
+	e, ok := (*permissionManager.Permissions)[dependencyName(depName)]
 	if !ok {
 		if strings.HasPrefix(depName, "github.com/") {
 			// Try a subset, github.com/google/go-github/v38/github
@@ -592,7 +620,7 @@ func getContextPermissionsForDep(resName string, fmatch permMatches, resType res
 			if len(parts) < 3 {
 				return nil
 			}
-			e, ok = definedPerms[dependencyName(strings.Join(parts[:3], "/"))]
+			e, ok = (*permissionManager.Permissions)[dependencyName(strings.Join(parts[:3], "/"))]
 		}
 		if !ok {
 			return nil
@@ -604,10 +632,13 @@ func getContextPermissionsForDep(resName string, fmatch permMatches, resType res
 		return nil
 	}
 
-	if v.ContextPermissions == nil {
+	// The user defined no permissions for the resource.
+	if v.ContextPermissions == nil || len(*v.ContextPermissions) == 0 {
 		return nil
 	}
 
+	// The user defined some permission for the resource.
+	// Entries that do not match are assumed denied.
 	r, ok := (*v.ContextPermissions)[resourceName(resName)]
 	if !ok {
 		// Need to handle globs. Probably need to change function completely
@@ -620,13 +651,17 @@ func getContextPermissionsForDep(resName string, fmatch permMatches, resType res
 		/*if r, ok = (*v.ContextPermissions)["*"]; ok {
 			return &r
 		}*/
-		return nil
+		no := accessNone
+		return &no
 	}
 	return &r
 }
 
 func getContextPermssionsForDep(resType resourceType, depName string) *perm {
-	e, ok := definedPerms[dependencyName(depName)]
+	if permissionManager.Permissions == nil {
+		return nil
+	}
+	e, ok := (*permissionManager.Permissions)[dependencyName(depName)]
 	if !ok {
 		if strings.HasPrefix(depName, "github.com/") {
 			// Try a subset, github.com/google/go-github/v38/github
@@ -634,7 +669,7 @@ func getContextPermssionsForDep(resType resourceType, depName string) *perm {
 			if len(parts) < 3 {
 				return nil
 			}
-			e, ok = definedPerms[dependencyName(strings.Join(parts[:3], "/"))]
+			e, ok = (*permissionManager.Permissions)[dependencyName(strings.Join(parts[:3], "/"))]
 		}
 		if !ok {
 			return nil

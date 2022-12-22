@@ -51,15 +51,15 @@ type (
 		DangerousPermissions *perm
 		ContextPermissions   *perm
 	}
-	dependencyName    string
-	perms             map[dependencyName]permsByResType
-	permsByResType    map[resourceType]p
-	permissionsPolicy struct {
+	dependencyName     string
+	perms              map[dependencyName]permsByResType
+	permsByResType     map[resourceType]p
+	permissionsManager struct {
 		Version     *int    `yaml:"version"`
 		Default     *policy `yaml:"default"`
 		Permissions *perms  `yaml:"permissions"`
 	}
-	// permissionsPolicy struct {
+	// permissionsManager struct {
 	// 	Version     int
 	// 	Default     policy
 	// 	Permissions perms
@@ -89,18 +89,6 @@ var (
 	errInvalidDefault     = errors.New("invalid default policy")
 	errInvalidPermissions = errors.New("invalid permissions")
 )
-
-// func (p *perms) UnmarshalYAML(data []byte) error {
-// 	var v []interface{}
-// 	if err := json.Unmarshal(data, &v); err != nil {
-// 		return err
-// 	}
-
-// 	fmt.Println("UnmarshalJSON:", string(data))
-// 	// TODO
-
-// 	return nil
-// }
 
 // https://abhinavg.net/2021/02/24/flexible-yaml/
 func (p *policy) UnmarshalYAML(n *yaml.Node) error {
@@ -268,12 +256,16 @@ func parsePermissionDefinition(permsDef map[string]interface{}) (*p, error) {
 	return &result, nil
 }
 
-func NewPermissionsFromFile(file string) (*permissionsPolicy, error) {
+func NewPermissionsFromFile(file string) (*permissionsManager, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
 		return nil, fmt.Errorf("%w", err)
 	}
 
+	return NewPermissionsFromData(data)
+}
+
+func NewPermissionsFromData(data []byte) (*permissionsManager, error) {
 	sp, err := parseFromJSON(data)
 	if err != nil {
 		return nil, err
@@ -286,7 +278,7 @@ func NewPermissionsFromFile(file string) (*permissionsPolicy, error) {
 	return sp, nil
 }
 
-func validate(pp *permissionsPolicy) error {
+func validate(pp *permissionsManager) error {
 	if err := pp.validateVersion(); err != nil {
 		return err
 	}
@@ -298,8 +290,8 @@ func validate(pp *permissionsPolicy) error {
 	return nil
 }
 
-func parseFromJSON(content []byte) (*permissionsPolicy, error) {
-	sp := permissionsPolicy{}
+func parseFromJSON(content []byte) (*permissionsManager, error) {
+	sp := permissionsManager{}
 
 	err := yaml.Unmarshal(content, &sp)
 	if err != nil {
@@ -308,7 +300,7 @@ func parseFromJSON(content []byte) (*permissionsPolicy, error) {
 	return &sp, nil
 }
 
-func (pp *permissionsPolicy) validateDefault() error {
+func (pp *permissionsManager) validateDefault() error {
 	if pp.Default == nil {
 		return fmt.Errorf("%w: no default found", errInvalidDefault)
 	}
@@ -316,7 +308,7 @@ func (pp *permissionsPolicy) validateDefault() error {
 	return nil
 }
 
-func (pp *permissionsPolicy) validateVersion() error {
+func (pp *permissionsManager) validateVersion() error {
 	if pp.Version == nil {
 		return fmt.Errorf("%w: no version found", errInvalidVersion)
 	}

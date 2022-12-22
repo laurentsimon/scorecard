@@ -26,7 +26,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		err         error
 		name        string
 		filename    string
-		permissions *permissionsPolicy
+		permissions *permissionsManager
 	}{
 		{
 			name:     "non existent file",
@@ -56,7 +56,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "allow default",
 			filename: "./testdata/allow-default.yml",
-			permissions: &permissionsPolicy{
+			permissions: &permissionsManager{
 				Version: &one,
 				Default: &allow,
 			},
@@ -64,7 +64,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "disallow default",
 			filename: "./testdata/disallow-default.yml",
-			permissions: &permissionsPolicy{
+			permissions: &permissionsManager{
 				Version: &one,
 				Default: &disallow,
 			},
@@ -82,7 +82,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "no perms",
 			filename: "./testdata/no-perms.yml",
-			permissions: &permissionsPolicy{
+			permissions: &permissionsManager{
 				Version: &one,
 				Default: &allow,
 			},
@@ -90,7 +90,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "none perms",
 			filename: "./testdata/none-perms.yml",
-			permissions: &permissionsPolicy{
+			permissions: &permissionsManager{
 				Version: &one,
 				Default: &allow,
 				Permissions: &perms{
@@ -101,7 +101,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "empty perms",
 			filename: "./testdata/empty-perms.yml",
-			permissions: &permissionsPolicy{
+			permissions: &permissionsManager{
 				Version: &one,
 				Default: &allow,
 			},
@@ -124,7 +124,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "perms none",
 			filename: "./testdata/perms-none.yml",
-			permissions: &permissionsPolicy{
+			permissions: &permissionsManager{
 				Version: &one,
 				Default: &allow,
 				Permissions: &perms{
@@ -136,7 +136,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "perms fs none",
 			filename: "./testdata/perms-fs-none.yml",
-			permissions: &permissionsPolicy{
+			permissions: &permissionsManager{
 				Version: &one,
 				Default: &allow,
 				Permissions: &perms{
@@ -176,7 +176,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "perms fs file",
 			filename: "./testdata/perms-fs-file.yml",
-			permissions: &permissionsPolicy{
+			permissions: &permissionsManager{
 				Version: &one,
 				Default: &allow,
 				Permissions: &perms{
@@ -197,7 +197,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "perms env names",
 			filename: "./testdata/perms-env-names.yml",
-			permissions: &permissionsPolicy{
+			permissions: &permissionsManager{
 				Version: &one,
 				Default: &allow,
 				Permissions: &perms{
