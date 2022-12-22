@@ -1,5 +1,8 @@
 version: 1
 default: allow
 permissions:
-  <ambient>: none
+  <ambient>:
+    fs:
+      /some/file rw
+    env: none
   github.com/google/go-github: none

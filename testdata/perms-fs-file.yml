@@ -1,0 +1,10 @@
+version: 1
+default: allow
+permissions:
+  <ambient>:
+    fs:
+      /some/file: rw
+      /another/file: r
+      /some/pattern/*: rx
+    env: none
+  github.com/google/go-github: none

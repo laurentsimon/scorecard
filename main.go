@@ -42,41 +42,6 @@ var (
 
 var localProgram = "<local>"
 
-var permsNone = permsByResType{
-	resourceTypeEnv: p{
-		dangerousPermissions: &perm{
-			"*": accessNone,
-		},
-		contextPermissions: &perm{
-			"*": accessNone,
-		},
-	},
-	resourceTypeFs: p{
-		dangerousPermissions: &perm{
-			"*": accessNone,
-		},
-		contextPermissions: &perm{
-			"*": accessNone,
-		},
-	},
-	resourceTypeNet: p{
-		dangerousPermissions: &perm{
-			"*": accessNone,
-		},
-		contextPermissions: &perm{
-			"*": accessNone,
-		},
-	},
-	resourceTypeProcess: p{
-		dangerousPermissions: &perm{
-			"*": accessNone,
-		},
-		contextPermissions: &perm{
-			"*": accessNone,
-		},
-	},
-}
-
 type permMatches func(val, req string) bool
 
 func envMatches(val, req string) bool {
@@ -127,12 +92,12 @@ var (
 		// PHASE 1: abien = disallow
 		"<local>": permsByResType{
 			resourceTypeEnv: {
-				contextPermissions: &perm{
+				ContextPermissions: &perm{
 					"*": accessRead,
 				},
 			},
 			resourceTypeFs: {
-				contextPermissions: &perm{
+				ContextPermissions: &perm{
 					"/etc/nsswitch.conf": accessRead,
 					"/etc/resolv.conf":   accessRead,
 					// TODO: verify it works properly
@@ -147,30 +112,30 @@ var (
 		},
 		// PHASE 2: depenedncy disallow
 		"github.com/laurentsimon/godep2": permsByResType{
-			// dangerousPermissions: perm{
+			// DangerousPermissions: perm{
 			// 	"*": accessRead,
 			// },
 			resourceTypeEnv: {
-				contextPermissions: &perm{
+				ContextPermissions: &perm{
 					"*": accessRead,
 				},
 			},
 		},
 		"github.com/laurentsimon/godep3": permsByResType{
 			resourceTypeEnv: {
-				contextPermissions: &perm{
+				ContextPermissions: &perm{
 					"FROM_OPTIONS": accessRead,
 				},
 			},
 		},
 		"github.com/spf13/cobra": permsByResType{ // Can use the needs.x in the future.
 			resourceTypeEnv: {
-				contextPermissions: &perm{
+				ContextPermissions: &perm{
 					"*": accessRead,
 				},
 			},
 			resourceTypeFs: {
-				contextPermissions: &perm{
+				ContextPermissions: &perm{
 					"/tmp/": accessRead,
 				},
 			},
@@ -178,7 +143,7 @@ var (
 		"github.com/google/go-github": permsNone,
 		"github.com/google/go-containerregistry": permsByResType{
 			resourceTypeFs: {
-				contextPermissions: &perm{
+				ContextPermissions: &perm{
 					// TODO: cleanup this up. Here we expect the use to write `fs:` or `fs: none`
 					//"*": accessNone,
 					// Need a re-use keyword
@@ -186,7 +151,7 @@ var (
 				},
 			},
 			resourceTypeEnv: {
-				contextPermissions: &perm{
+				ContextPermissions: &perm{
 					"HOME":          accessRead,
 					"DOCKER_CONFIG": accessRead,
 					"GODEBUG":       accessRead,
@@ -234,7 +199,7 @@ var (
 		/*
 			"github.com/docker/docker-credential-helpers": p{
 				resourceTypeEnv: {
-					contextPermissions: &perm{
+					ContextPermissions: &perm{
 						"HOME":          accessRead,
 						"DOCKER_CONFIG": accessRead,
 						"GODEBUG":       accessRead,
@@ -384,13 +349,13 @@ func computePermissions(key string, fmatch permMatches, resType resourceType, re
 	var dangerousAllowed bool
 
 	// TODO: verify that i's orrect for dangerous perms if error in fmatch()
-	dangerousPermissions := getDangerousPermissionsForDep(key, fmatch, resType, depName)
+	DangerousPermissions := getDangerousPermissionsForDep(key, fmatch, resType, depName)
 	// TODO: simplify
 	if ambientPolicy == policyDefaultAllow && depsPolicy == policyDefaultAllow {
-		dangerousAllowed = isPermissionAllowed2(dangerousPermissions, req, true)
+		dangerousAllowed = isPermissionAllowed2(DangerousPermissions, req, true)
 	} else {
-		// dangerousAllowed = isPermissionAllowed(dangerousPermissions, depName)
-		dangerousAllowed = isPermissionAllowed2(dangerousPermissions, req, false)
+		// dangerousAllowed = isPermissionAllowed(DangerousPermissions, depName)
+		dangerousAllowed = isPermissionAllowed2(DangerousPermissions, req, false)
 	}
 	mylog(" . Allowed dangerous:", strconv.FormatBool(dangerousAllowed))
 
@@ -450,17 +415,17 @@ func computePermissions(key string, fmatch permMatches, resType resourceType, re
 		// callbacks.
 		// Note: this code should be properly seperated.
 		if isLocal {
-			contextPermissions := getContextPermissionsForDep(key, fmatch, resType, localProgram)
+			ContextPermissions := getContextPermissionsForDep(key, fmatch, resType, localProgram)
 			if ambientPolicy == policyDefaultDisallow {
 				if !foundLocal {
 					foundLocal = true
-					if !isPermissionAllowed2(contextPermissions, req, false) {
+					if !isPermissionAllowed2(ContextPermissions, req, false) {
 						mylog(" . Allowed context: false -", localProgram)
 						break
 					}
 				}
 			} else {
-				if !isPermissionAllowed2(contextPermissions, req, true) {
+				if !isPermissionAllowed2(ContextPermissions, req, true) {
 					mylog(" . Allowed context: false -", localProgram)
 					break
 				}
@@ -469,7 +434,7 @@ func computePermissions(key string, fmatch permMatches, resType resourceType, re
 
 		packageName := getPackageName(curr.Function)
 		if currIs3P {
-			contextPermissions := getContextPermissionsForDep(key, fmatch, resType, packageName)
+			ContextPermissions := getContextPermissionsForDep(key, fmatch, resType, packageName)
 			if !found3P && !prevIs3P {
 				mylog(" . Direct dep -", packageName)
 			}
@@ -477,18 +442,18 @@ func computePermissions(key string, fmatch permMatches, resType resourceType, re
 				if !found3P && !prevIs3P {
 					// Direct dependency.
 					found3P = true
-					if !isPermissionAllowed2(contextPermissions, req, false) {
+					if !isPermissionAllowed2(ContextPermissions, req, false) {
 						mylog(" . Allowed context: false (direct) -", packageName)
 						break
 					}
 				} else {
-					if !isPermissionAllowed2(contextPermissions, req, true) {
+					if !isPermissionAllowed2(ContextPermissions, req, true) {
 						mylog(" . Allowed context: false -", packageName)
 						break
 					}
 				}
 			} else {
-				if !isPermissionAllowed2(contextPermissions, req, true) {
+				if !isPermissionAllowed2(ContextPermissions, req, true) {
 					mylog(" . Allowed context: false -", packageName)
 					break
 				}
@@ -508,10 +473,10 @@ func computePermissions(key string, fmatch permMatches, resType resourceType, re
 		// 	panic("not allowed")
 		// }
 
-		// if currIs3P && isAllowed(contextPermissions, packageName) {
+		// if currIs3P && isAllowed(ContextPermissions, packageName) {
 		// 	mylog(" . Allowed context: false -", packageName)
 		// 	break
-		// } else if !isRuntime && !isAllowed(contextPermissions, localProgram) {
+		// } else if !isRuntime && !isAllowed(ContextPermissions, localProgram) {
 		// 	// Local, ie main program
 		// 	mylog(" . Allowed context: false -", localProgram)
 		// 	break
@@ -595,22 +560,22 @@ func getDangerousPermissionsForDep(resName string, fmatch permMatches, resType r
 		return nil
 	}
 
-	if v.dangerousPermissions == nil {
+	if v.DangerousPermissions == nil {
 		return nil
 	}
 
-	r, ok := (*v.dangerousPermissions)[resourceName(resName)]
+	r, ok := (*v.DangerousPermissions)[resourceName(resName)]
 	if !ok {
 		// Need to handle globs. Probably need to change function completely
 		// to iterate over the perm, instead of returning the access.
 		// TODO: use arrays.
-		for kk, vv := range *v.dangerousPermissions {
+		for kk, vv := range *v.DangerousPermissions {
 			if fmatch(string(kk), resName) {
 				return &vv
 			}
 		}
 
-		// if r, ok = (*v.dangerousPermissions)["*"]; ok {
+		// if r, ok = (*v.DangerousPermissions)["*"]; ok {
 		// 	return &r
 		// }
 		return nil
@@ -639,20 +604,20 @@ func getContextPermissionsForDep(resName string, fmatch permMatches, resType res
 		return nil
 	}
 
-	if v.contextPermissions == nil {
+	if v.ContextPermissions == nil {
 		return nil
 	}
 
-	r, ok := (*v.contextPermissions)[resourceName(resName)]
+	r, ok := (*v.ContextPermissions)[resourceName(resName)]
 	if !ok {
 		// Need to handle globs. Probably need to change function completely
 		// to iterate over the perm, instead of returning the access.
-		for kk, vv := range *v.contextPermissions {
+		for kk, vv := range *v.ContextPermissions {
 			if fmatch(string(kk), resName) {
 				return &vv
 			}
 		}
-		/*if r, ok = (*v.contextPermissions)["*"]; ok {
+		/*if r, ok = (*v.ContextPermissions)["*"]; ok {
 			return &r
 		}*/
 		return nil
@@ -681,7 +646,7 @@ func getContextPermssionsForDep(resType resourceType, depName string) *perm {
 		return nil
 	}
 
-	return v.contextPermissions
+	return v.ContextPermissions
 }
 
 func isPermissionAllowed2(def *access, req access, defValue bool) bool {

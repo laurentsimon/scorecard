@@ -2,10 +2,10 @@ package main
 
 import (
 	"errors"
-	//"fmt"
 	"os"
-	"strings"
 	"testing"
+
+	//"fmt"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -18,10 +18,12 @@ func errCmp(e1, e2 error) bool {
 func Test_NewPermissionsFromFile(t *testing.T) {
 	t.Parallel()
 
+	one := 1
+	allow := policyDefaultAllow
+	disallow := policyDefaultDisallow
 	//nolint
 	tests := []struct {
 		err         error
-		errText     string
 		name        string
 		filename    string
 		permissions *permissionsPolicy
@@ -55,16 +57,16 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 			name:     "allow default",
 			filename: "./testdata/allow-default.yml",
 			permissions: &permissionsPolicy{
-				Version: 1,
-				Default: policyDefaultAllow,
+				Version: &one,
+				Default: &allow,
 			},
 		},
 		{
 			name:     "disallow default",
 			filename: "./testdata/disallow-default.yml",
 			permissions: &permissionsPolicy{
-				Version: 1,
-				Default: policyDefaultDisallow,
+				Version: &one,
+				Default: &disallow,
 			},
 		},
 		{
@@ -73,27 +75,35 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 			err:      errInvalidPermissions,
 		},
 		{
+			name:     "invalid str perms",
+			filename: "./testdata/invalid-str-perms.yml",
+			err:      errInvalidPermissions,
+		},
+		{
 			name:     "no perms",
 			filename: "./testdata/no-perms.yml",
 			permissions: &permissionsPolicy{
-				Version: 1,
-				Default: policyDefaultAllow,
+				Version: &one,
+				Default: &allow,
 			},
 		},
 		{
 			name:     "none perms",
 			filename: "./testdata/none-perms.yml",
 			permissions: &permissionsPolicy{
-				Version: 1,
-				Default: policyDefaultAllow,
+				Version: &one,
+				Default: &allow,
+				Permissions: &perms{
+					ambientAuthority: permsByResType{},
+				},
 			},
 		},
 		{
 			name:     "empty perms",
 			filename: "./testdata/empty-perms.yml",
 			permissions: &permissionsPolicy{
-				Version: 1,
-				Default: policyDefaultAllow,
+				Version: &one,
+				Default: &allow,
 			},
 		},
 		{
@@ -104,7 +114,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "duplicate none perms",
 			filename: "./testdata/duplicate-none-perms.yml",
-			errText:  "already defined at line",
+			err:      errInvalidPermissions,
 		},
 		{
 			name:     "perms multiple invalid string",
@@ -115,10 +125,92 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 			name:     "perms none",
 			filename: "./testdata/perms-none.yml",
 			permissions: &permissionsPolicy{
-				Version: 1,
-				Default: policyDefaultAllow,
-				Permissions: perms{
-					"<local>":                     permsByResType{},
+				Version: &one,
+				Default: &allow,
+				Permissions: &perms{
+					ambientAuthority:              permsByResType{},
+					"github.com/google/go-github": permsByResType{},
+				},
+			},
+		},
+		{
+			name:     "perms fs none",
+			filename: "./testdata/perms-fs-none.yml",
+			permissions: &permissionsPolicy{
+				Version: &one,
+				Default: &allow,
+				Permissions: &perms{
+					ambientAuthority: permsByResType{
+						resourceTypeEnv: permNone,
+						resourceTypeFs:  permNone,
+					},
+					"github.com/google/go-github": permsByResType{},
+				},
+			},
+		},
+		{
+			name:     "perms fs invalid str",
+			filename: "./testdata/perms-fs-invalid-str.yml",
+			err:      errInvalidPermissions,
+		},
+		{
+			name:     "perms fs invalid int",
+			filename: "./testdata/perms-fs-invalid-int.yml",
+			err:      errInvalidPermissions,
+		},
+		{
+			name:     "perms fs empty",
+			filename: "./testdata/perms-fs-empty.yml",
+			err:      errInvalidPermissions,
+		},
+		{
+			name:     "perms fs file invalid def",
+			filename: "./testdata/perms-fs-file-invalid-def.yml",
+			err:      errInvalidPermissions,
+		},
+		{
+			name:     "perms fs file invalid access",
+			filename: "./testdata/perms-fs-file-invalid-access.yml",
+			err:      errInvalidPermissions,
+		},
+		{
+			name:     "perms fs file",
+			filename: "./testdata/perms-fs-file.yml",
+			permissions: &permissionsPolicy{
+				Version: &one,
+				Default: &allow,
+				Permissions: &perms{
+					ambientAuthority: permsByResType{
+						resourceTypeEnv: permNone,
+						resourceTypeFs: p{
+							ContextPermissions: &perm{
+								"/another/file":   accessRead,
+								"/some/pattern/*": accessRead | accessExec,
+								"/some/file":      accessRead | accessWrite,
+							},
+						},
+					},
+					"github.com/google/go-github": permsByResType{},
+				},
+			},
+		},
+		{
+			name:     "perms env names",
+			filename: "./testdata/perms-env-names.yml",
+			permissions: &permissionsPolicy{
+				Version: &one,
+				Default: &allow,
+				Permissions: &perms{
+					ambientAuthority: permsByResType{
+						resourceTypeFs: permNone,
+						resourceTypeEnv: p{
+							ContextPermissions: &perm{
+								"ENV_NAME1": accessRead | accessWrite,
+								"ENV_NAME2": accessRead,
+								"ENV_NAME3": accessRead | accessExec,
+							},
+						},
+					},
 					"github.com/google/go-github": permsByResType{},
 				},
 			},
@@ -132,14 +224,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 
 			p, err := NewPermissionsFromFile(tt.filename)
 
-			if tt.errText != "" {
-				// Duplicate entries trigger a parsing error but there is not particulat type
-				// we can check. There is only text we can look at.
-				if !strings.Contains(err.Error(), tt.errText) {
-					t.Fatalf("unexpected error: %v", cmp.Diff(err.Error(), tt.errText))
-				}
-				return
-			} else if err != nil || tt.err != nil {
+			if err != nil || tt.err != nil {
 				if !errCmp(err, tt.err) {
 					t.Fatalf("unexpected error: %v", cmp.Diff(err, tt.err, cmpopts.EquateErrors()))
 				}

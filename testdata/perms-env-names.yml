@@ -1,0 +1,10 @@
+version: 1
+default: allow
+permissions:
+  <ambient>:
+    fs: none
+    env:
+      ENV_NAME1: rw
+      ENV_NAME2: r
+      ENV_NAME3: rx
+  github.com/google/go-github: none
