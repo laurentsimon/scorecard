@@ -13,8 +13,12 @@ permissions:
     env:
       '*': r
   github.com/laurentsimon/godep2:
-    env: none
-    #  '*': r
+    # Note: if there is an explicit deifnition,
+    # like `env` in this case, other resources (fs, net, etc)
+    # are assummed to be a deny if not explicitly declared.
+    # Similarily, resource names not listed are assummed denied.
+    env:
+      '*': r
   github.com/spf13/cobra:
     env:
       '*': r

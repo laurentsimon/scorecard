@@ -253,12 +253,12 @@ func (pm *PermissionsManager) getContextPermissionsForDep(resName string, fmatch
 		return nil
 	}
 
-	// The user defined no permissions for the resource.
+	// The user defined no permissions.
 	if v.ContextPermissions == nil || len(*v.ContextPermissions) == 0 {
 		return nil
 	}
 
-	// The user defined some permission for the resource.
+	// The user defined some permission for some resources.
 	// Entries that do not match are assumed denied.
 	r, ok := (*v.ContextPermissions)[resourceName(resName)]
 	if !ok {
