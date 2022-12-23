@@ -58,8 +58,7 @@ func mylog(args ...string) {
 // TODO: callback
 func (pm *PermissionsManager) OnAccess(key string, matches permMatches, resType ResourceType, req Access) {
 	pc := make([]uintptr, 1000)
-	// Skip untime.caller, this function and the programs's caller.
-	// TODO: when it lives in its own package, this will become 4.
+	// Skip runtime.caller, this function, the hook manager and the runtime's hook.
 	n := runtime.Callers(4, pc)
 	if n == 0 {
 		panic("!zero!")
