@@ -1,0 +1,74 @@
+version: 1
+default: disallow
+permissions:
+  <ambient>:
+    fs:
+      /etc/nsswitch.conf: r
+      /etc/resolv.conf: r
+      /etc/ssl/certs/*: r
+      /etc/pki/tls/*: r
+      /system/etc/security/cacerts: r
+      /tmp/: r
+      /usr/local/google/home/laurentsimon/.docker/*: r
+    env:
+      '*': r
+  github.com/laurentsimon/godep2:
+    env: none
+    #  '*': r
+  github.com/spf13/cobra:
+    env:
+      '*': r
+  github.com/laurentsimon/godep3:
+    env:
+      FROM_OPTIONS: r
+      MAIN_DEP2_DEP3: r
+  github.com/google/go-containerregistry:
+    fs:
+      /usr/local/google/home/laurentsimon/.docker/config.json: r
+    env:
+      '*': r
+    # env:
+    #   HOME: r
+    #   DOCKER_CONFIG: r
+    #   GODEBUG: r
+    #   PATH: r
+  github.com/google/go-github: none
+  cloud.google.com/go/bigquery: none
+  cloud.google.com/go/pubsub: none
+  contrib.go.opencensus.io/exporter/stackdriver: none
+  github.com/Masterminds/semver/v3: none
+  github.com/bombsimon/logrusr/v2: none
+  github.com/bradleyfalzon/ghinstallation/v2: none
+  github.com/caarlos0/env: none
+  github.com/go-git/go-git: none
+  github.com/go-logr/logr: none
+  github.com/gobwas/glob: none
+  github.com/golang/mock: none
+  github.com/google/go-cmp: none
+  github.com/grafeas/kritis: none
+  github.com/h2non/filetype: none
+  github.com/jszwec/csvutil: none
+  github.com/mcuadros/go-jsonschema-generator: none
+  github.com/moby/buildkit: none
+  github.com/olekukonko/tablewriter: none
+  github.com/onsi/ginkgo: none
+  github.com/onsi/gomega: none
+  github.com/rhysd/actionlint: none
+  github.com/shurcooL/githubv4: none
+  github.com/sirupsen/logrus: none
+  github.com/xanzy/go-gitlab: none
+  github.com/xeipuuv/gojsonschema: none
+  go.opencensus.io: none
+  gocloud.dev: none
+  golang.org/x/exp: none
+  golang.org/x/text: none
+  golang.org/x/tools: none
+  google.golang.org/genproto: none
+  google.golang.org/protobuf: none
+  gopkg.in/yaml.v2: none
+  gopkg.in/yaml.v3: none
+  gotest.tools: none
+  mvdan.cc/sh/v3: none
+  sigs.k8s.io/release-utils: none
+
+

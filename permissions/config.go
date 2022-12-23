@@ -1,38 +1,33 @@
-package main
+package permissions
 
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
-
-	//"os"
 
 	"gopkg.in/yaml.v3"
 )
 
-type access int
+type ResourceType int
 
 const (
-	accessWrite access = 1
-	accessRead  access = 2
-	accessExec  access = 4
-	accessNone  access = 0
-)
-
-type resourceType int
-
-const (
-	resourceTypeEnv resourceType = iota
-	resourceTypeFs
-	resourceTypeNet
-	// resourceTypeRpc
-	resourceTypeProcess
+	ResourceTypeEnv ResourceType = iota
+	ResourceTypeFs
+	ResourceTypeNet
+	// ResourceTypeRpc
+	ResourceTypeProcess
 )
 
 const (
 	policyDefaultDisallow policy = iota
 	policyDefaultAllow
+)
+
+type (
+	resourceName string
+	perm         map[resourceName]Access
+	Access       int
+	permission   int
 )
 
 const (
@@ -41,45 +36,43 @@ const (
 	permissionNotDefined
 )
 
+const (
+	AccessWrite Access = 1
+	AccessRead  Access = 2
+	AccessExec  Access = 4
+	AccessNone  Access = 0
+)
+
 type (
-	policy       int
-	permission   int
-	resourceName string
-	// TODO: rename to be self-explanatory.
-	perm map[resourceName]access
-	p    struct {
+	policy int
+	p      struct {
 		DangerousPermissions *perm
 		ContextPermissions   *perm
 	}
-	dependencyName     string
-	perms              map[dependencyName]permsByResType
-	permsByResType     map[resourceType]p
-	permissionsManager struct {
+	dependencyName string
+	perms          map[dependencyName]permsByResType
+	permsByResType map[ResourceType]p
+	config         struct {
 		Version     *int    `yaml:"version"`
 		Default     *policy `yaml:"default"`
 		Permissions *perms  `yaml:"permissions"`
 	}
-	// permissionsManager struct {
-	// 	Version     int
-	// 	Default     policy
-	// 	Permissions perms
-	// }
 )
 
 var permNone = p{
 	DangerousPermissions: &perm{
-		"*": accessNone,
+		"*": AccessNone,
 	},
 	ContextPermissions: &perm{
-		"*": accessNone,
+		"*": AccessNone,
 	},
 }
 
 var permsNone = permsByResType{
-	resourceTypeEnv:     permNone,
-	resourceTypeFs:      permNone,
-	resourceTypeNet:     permNone,
-	resourceTypeProcess: permNone,
+	ResourceTypeEnv:     permNone,
+	ResourceTypeFs:      permNone,
+	ResourceTypeNet:     permNone,
+	ResourceTypeProcess: permNone,
 }
 
 var ambientAuthority dependencyName = "<ambient>"
@@ -89,6 +82,59 @@ var (
 	errInvalidDefault     = errors.New("invalid default policy")
 	errInvalidPermissions = errors.New("invalid permissions")
 )
+
+func NewConfigFromData(data []byte) (*config, error) {
+	c, err := parseFromJSON(data)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.validate(); err != nil {
+		return nil, err
+	}
+
+	return c, nil
+}
+
+func parseFromJSON(content []byte) (*config, error) {
+	c := config{}
+
+	err := yaml.Unmarshal(content, &c)
+	if err != nil {
+		return nil, fmt.Errorf("%w: yaml.Unmarshal()", err)
+	}
+	return &c, nil
+}
+
+func (c *config) validate() error {
+	if err := c.validateVersion(); err != nil {
+		return err
+	}
+
+	if err := c.validateDefault(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *config) validateDefault() error {
+	if c.Default == nil {
+		return fmt.Errorf("%w: no default found", errInvalidDefault)
+	}
+
+	return nil
+}
+
+func (c *config) validateVersion() error {
+	if c.Version == nil {
+		return fmt.Errorf("%w: no version found", errInvalidVersion)
+	}
+	if *c.Version != 1 {
+		return fmt.Errorf("%w: %q", errInvalidVersion, *c.Version)
+	}
+	return nil
+}
 
 // https://abhinavg.net/2021/02/24/flexible-yaml/
 func (p *policy) UnmarshalYAML(n *yaml.Node) error {
@@ -109,7 +155,6 @@ func (p *policy) UnmarshalYAML(n *yaml.Node) error {
 }
 
 func (p *perms) UnmarshalYAML(n *yaml.Node) error {
-	fmt.Println("value:", n.Value)
 	// Handle string.
 	var str string
 	if err := n.Decode(&str); err == nil {
@@ -178,23 +223,23 @@ func (p *perms) UnmarshalYAML(n *yaml.Node) error {
 	return fmt.Errorf("%w: %q", errInvalidPermissions, n.Value)
 }
 
-func parseResourceType(name string) (*resourceType, error) {
-	var resType resourceType
+func parseResourceType(name string) (*ResourceType, error) {
+	var resType ResourceType
 	switch name {
 	case "fs":
-		resType = resourceTypeFs
+		resType = ResourceTypeFs
 	case "env":
-		resType = resourceTypeEnv
+		resType = ResourceTypeEnv
 	case "net":
-		resType = resourceTypeNet
-		// case "exec": resType = resourceTypeExec
+		resType = ResourceTypeNet
+		// case "exec": resType = ResourceTypeExec
 	default:
 		return nil, fmt.Errorf("%w: resource type %q", errInvalidPermissions, name)
 	}
 	return &resType, nil
 }
 
-func parseResourcePermissions(key string, value interface{}) (*resourceType, *p, error) {
+func parseResourcePermissions(key string, value interface{}) (*ResourceType, *p, error) {
 	resType, err := parseResourceType(key)
 	if err != nil {
 		return nil, nil, err
@@ -234,15 +279,15 @@ func parsePermissionDefinition(permsDef map[string]interface{}) (*p, error) {
 					return nil, fmt.Errorf("%w: %q", errInvalidPermissions, vv)
 				}
 			}
-			acc := accessNone
+			acc := AccessNone
 			if strings.Contains(vv, "r") {
-				acc |= accessRead
+				acc |= AccessRead
 			}
 			if strings.Contains(vv, "w") {
-				acc |= accessWrite
+				acc |= AccessWrite
 			}
 			if strings.Contains(vv, "x") {
-				acc |= accessExec
+				acc |= AccessExec
 			}
 
 			if result.ContextPermissions == nil {
@@ -254,66 +299,4 @@ func parsePermissionDefinition(permsDef map[string]interface{}) (*p, error) {
 		}
 	}
 	return &result, nil
-}
-
-func NewPermissionsFromFile(file string) (*permissionsManager, error) {
-	data, err := os.ReadFile(file)
-	if err != nil {
-		return nil, fmt.Errorf("%w", err)
-	}
-
-	return NewPermissionsFromData(data)
-}
-
-func NewPermissionsFromData(data []byte) (*permissionsManager, error) {
-	sp, err := parseFromJSON(data)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := validate(sp); err != nil {
-		return nil, err
-	}
-
-	return sp, nil
-}
-
-func validate(pp *permissionsManager) error {
-	if err := pp.validateVersion(); err != nil {
-		return err
-	}
-
-	if err := pp.validateDefault(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func parseFromJSON(content []byte) (*permissionsManager, error) {
-	sp := permissionsManager{}
-
-	err := yaml.Unmarshal(content, &sp)
-	if err != nil {
-		return nil, fmt.Errorf("%w: yaml.Unmarshal()", err)
-	}
-	return &sp, nil
-}
-
-func (pp *permissionsManager) validateDefault() error {
-	if pp.Default == nil {
-		return fmt.Errorf("%w: no default found", errInvalidDefault)
-	}
-
-	return nil
-}
-
-func (pp *permissionsManager) validateVersion() error {
-	if pp.Version == nil {
-		return fmt.Errorf("%w: no version found", errInvalidVersion)
-	}
-	if *pp.Version != 1 {
-		return fmt.Errorf("%w: %q", errInvalidVersion, *pp.Version)
-	}
-	return nil
 }

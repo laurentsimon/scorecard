@@ -1,4 +1,4 @@
-package main
+package permissions
 
 import (
 	"errors"
@@ -15,7 +15,7 @@ func errCmp(e1, e2 error) bool {
 	return errors.Is(e1, e2) || errors.Is(e2, e1)
 }
 
-func Test_NewPermissionsFromFile(t *testing.T) {
+func Test_NewConfigFromData(t *testing.T) {
 	t.Parallel()
 
 	one := 1
@@ -23,16 +23,11 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 	disallow := policyDefaultDisallow
 	//nolint
 	tests := []struct {
-		err         error
-		name        string
-		filename    string
-		permissions *permissionsManager
+		err      error
+		name     string
+		filename string
+		config   *config
 	}{
-		{
-			name:     "non existent file",
-			filename: "./testdata/some-file.yml",
-			err:      os.ErrNotExist,
-		},
 		{
 			name:     "no version",
 			filename: "./testdata/no-version.yml",
@@ -56,7 +51,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "allow default",
 			filename: "./testdata/allow-default.yml",
-			permissions: &permissionsManager{
+			config: &config{
 				Version: &one,
 				Default: &allow,
 			},
@@ -64,7 +59,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "disallow default",
 			filename: "./testdata/disallow-default.yml",
-			permissions: &permissionsManager{
+			config: &config{
 				Version: &one,
 				Default: &disallow,
 			},
@@ -82,7 +77,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "no perms",
 			filename: "./testdata/no-perms.yml",
-			permissions: &permissionsManager{
+			config: &config{
 				Version: &one,
 				Default: &allow,
 			},
@@ -90,7 +85,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "none perms",
 			filename: "./testdata/none-perms.yml",
-			permissions: &permissionsManager{
+			config: &config{
 				Version: &one,
 				Default: &allow,
 				Permissions: &perms{
@@ -101,7 +96,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "empty perms",
 			filename: "./testdata/empty-perms.yml",
-			permissions: &permissionsManager{
+			config: &config{
 				Version: &one,
 				Default: &allow,
 			},
@@ -124,7 +119,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "perms none",
 			filename: "./testdata/perms-none.yml",
-			permissions: &permissionsManager{
+			config: &config{
 				Version: &one,
 				Default: &allow,
 				Permissions: &perms{
@@ -136,7 +131,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "perms fs none",
 			filename: "./testdata/perms-fs-none.yml",
-			permissions: &permissionsManager{
+			config: &config{
 				Version: &one,
 				Default: &allow,
 				Permissions: &perms{
@@ -176,7 +171,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "perms fs file",
 			filename: "./testdata/perms-fs-file.yml",
-			permissions: &permissionsManager{
+			config: &config{
 				Version: &one,
 				Default: &allow,
 				Permissions: &perms{
@@ -197,7 +192,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		{
 			name:     "perms env names",
 			filename: "./testdata/perms-env-names.yml",
-			permissions: &permissionsManager{
+			config: &config{
 				Version: &one,
 				Default: &allow,
 				Permissions: &perms{
@@ -221,8 +216,11 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 		tt := &tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-
-			p, err := NewPermissionsFromFile(tt.filename)
+			data, err := os.ReadFile(tt.filename)
+			if err != nil {
+				t.Fatalf("ReadFile: %v", err)
+			}
+			p, err := NewConfigFromData(data)
 
 			if err != nil || tt.err != nil {
 				if !errCmp(err, tt.err) {
@@ -231,7 +229,7 @@ func Test_NewPermissionsFromFile(t *testing.T) {
 				return
 			}
 
-			if diff := cmp.Diff(*tt.permissions, *p); diff != "" {
+			if diff := cmp.Diff(*tt.config, *p); diff != "" {
 				t.Errorf("mismatch (-want +got):\n%s", diff)
 			}
 		})
