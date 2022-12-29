@@ -1,16 +1,19 @@
 version: 1
 default: disallow
+#TODO: support for base: linux, etc tnat enables known permissions, like PATH, /etc/, etc
 permissions:
   <ambient>:
     fs:
-      /etc/nsswitch.conf: r
-      /etc/resolv.conf: r
+      #/etc/nsswitch.conf: r
+      #/etc/resolv.conf: r
+      #/etc/hosts: r
       /etc/ssl/certs/*: r
       /etc/pki/tls/*: r
       /system/etc/security/cacerts: r
       /tmp/: r
       /usr/local/google/home/laurentsimon/.docker/*: r
     env:
+      #GITHUB_AUTH_TOKEN: r
       '*': r
   github.com/laurentsimon/godep2:
     # Note: if there is an explicit deifnition,
@@ -22,6 +25,9 @@ permissions:
   github.com/spf13/cobra:
     env:
       '*': r
+  # TODO: support fr non-inherited permissions. bla: r callee_inheritance=no
+  # This will be useful for permissions that are not context-dependent,
+  # eg github.com/google/go-containerregistry needs access to HOME/.docker
   github.com/laurentsimon/godep3:
     env:
       FROM_OPTIONS: r

@@ -136,8 +136,8 @@ func Test_NewConfigFromData(t *testing.T) {
 				Default: &allow,
 				Permissions: &perms{
 					ambientAuthority: permsByResType{
-						resourceTypeEnv: permNone,
-						resourceTypeFs:  permNone,
+						ResourceTypeEnv: permNone,
+						ResourceTypeFs:  permNone,
 					},
 					"github.com/google/go-github": permsByResType{},
 				},
@@ -176,12 +176,12 @@ func Test_NewConfigFromData(t *testing.T) {
 				Default: &allow,
 				Permissions: &perms{
 					ambientAuthority: permsByResType{
-						resourceTypeEnv: permNone,
-						resourceTypeFs: p{
+						ResourceTypeEnv: permNone,
+						ResourceTypeFs: p{
 							ContextPermissions: &perm{
-								"/another/file":   accessRead,
-								"/some/pattern/*": accessRead | accessExec,
-								"/some/file":      accessRead | accessWrite,
+								"/another/file":   AccessRead,
+								"/some/pattern/*": AccessRead | AccessExec,
+								"/some/file":      AccessRead | AccessWrite,
 							},
 						},
 					},
@@ -197,12 +197,12 @@ func Test_NewConfigFromData(t *testing.T) {
 				Default: &allow,
 				Permissions: &perms{
 					ambientAuthority: permsByResType{
-						resourceTypeFs: permNone,
-						resourceTypeEnv: p{
+						ResourceTypeFs: permNone,
+						ResourceTypeEnv: p{
 							ContextPermissions: &perm{
-								"ENV_NAME1": accessRead | accessWrite,
-								"ENV_NAME2": accessRead,
-								"ENV_NAME3": accessRead | accessExec,
+								"ENV_NAME1": AccessRead | AccessWrite,
+								"ENV_NAME2": AccessRead,
+								"ENV_NAME3": AccessRead | AccessExec,
 							},
 						},
 					},

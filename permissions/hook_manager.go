@@ -1,10 +1,8 @@
 package permissions
 
 import (
-	"fmt"
 	"hooks"
 	"io/fs"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -67,44 +65,56 @@ func fsMatches(val, req string) bool {
 	// }
 }
 
-func (hm *hookManager) Getenv(key string) {
-	fmt.Printf("Getenv(%s)\n", key)
+func (hm *hookManager) Getenv(key string) error {
+	mylog("Getenv(%s)\n", key)
 	// mylog("stack info:")
 	start := time.Now()
 
-	hm.permissionsManager.OnAccess(key, envMatches, ResourceTypeEnv, AccessRead)
+	if err := hm.permissionsManager.OnAccess(key, envMatches, ResourceTypeEnv, AccessRead); err != nil {
+		return err
+	}
 
 	elapsed := time.Since(start)
 	Times[Times_c] = elapsed.Nanoseconds()
 	Times_c++
-	log.Printf("perm check took %d", elapsed.Nanoseconds())
+	mylog("perm check took ", string(elapsed.Nanoseconds()))
+
+	return nil
 }
 
-func (hm *hookManager) Environ() {
+func (hm *hookManager) Environ() error {
 	// disabled for testing
 	// return
-	fmt.Printf("Environ()\n")
+	mylog("Environ()\n")
 	start := time.Now()
 
-	hm.permissionsManager.OnAccess("*", envMatches, ResourceTypeEnv, AccessRead)
+	if err := hm.permissionsManager.OnAccess("*", envMatches, ResourceTypeEnv, AccessRead); err != nil {
+		return err
+	}
 
 	elapsed := time.Since(start)
 	Times[Times_c] = elapsed.Nanoseconds()
 	Times_c++
-	log.Printf("perm check took %d", elapsed.Nanoseconds())
+	mylog("perm check took ", string(elapsed.Nanoseconds()))
+
+	return nil
 }
 
-func (hm *hookManager) Open(file string, flag int, perms fs.FileMode) {
+func (hm *hookManager) Open(file string, flag int, perms fs.FileMode) error {
 	// disabled
-	return
-	fmt.Printf("Open(%s)\n", file)
+	// return
+	mylog("Open(%s)\n", file)
 	start := time.Now()
 
 	// TODO: Do this properly.
-	hm.permissionsManager.OnAccess(file, fsMatches, ResourceTypeFs, AccessRead)
+	if err := hm.permissionsManager.OnAccess(file, fsMatches, ResourceTypeFs, AccessRead); err != nil {
+		return err
+	}
 
 	elapsed := time.Since(start)
 	Times[Times_c] = elapsed.Nanoseconds()
 	Times_c++
-	log.Printf("perm check took %d", elapsed.Nanoseconds())
+	mylog("perm check took ", string(elapsed.Nanoseconds()))
+
+	return nil
 }

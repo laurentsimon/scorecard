@@ -1,6 +1,8 @@
 package permissions
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -19,8 +21,10 @@ var depsPolicy = policyDefaultAllow
 
 type (
 	permMatches func(val, req string) bool
-	OnViolation func(string, string, ResourceType, string, Access)
+	OnViolation func(s *Stack) error
 )
+
+var ErrPermissionManagerViolation = errors.New("permission manager violation")
 
 func NewPermissionManagerFromFile(file string, cb OnViolation) (*PermissionsManager, error) {
 	data, err := os.ReadFile(file)
@@ -50,13 +54,18 @@ func NewPermissionManagerFromData(data []byte, cb OnViolation) (*PermissionsMana
 	return &pm, nil
 }
 
+func prettyPrint(i interface{}) string {
+	s, _ := json.MarshalIndent(i, "", "\t")
+	return string(s)
+}
+
 func mylog(args ...string) {
-	msg := fmt.Sprintln(args)
-	fmt.Fprintf(os.Stderr, msg)
+	// msg := fmt.Sprintln(args)
+	// fmt.Fprintf(os.Stderr, msg)
 }
 
 // TODO: callback
-func (pm *PermissionsManager) OnAccess(key string, matches permMatches, resType ResourceType, req Access) {
+func (pm *PermissionsManager) OnAccess(key string, matches permMatches, resType ResourceType, req Access) error {
 	pc := make([]uintptr, 1000)
 	// Skip runtime.caller, this function, the hook manager and the runtime's hook.
 	n := runtime.Callers(4, pc)
@@ -101,13 +110,13 @@ func (pm *PermissionsManager) OnAccess(key string, matches permMatches, resType 
 	var dangerousAllowed bool
 
 	// TODO: verify that i's orrect for dangerous policy if error in fmatch()
-	DangerousPermissions := pm.getDangerousPermissionsForDep(key, matches, resType, depName)
+	dangerousPermissions := pm.getDangerousPermissionsForDep(key, matches, resType, depName)
 	// TODO: simplify
 	if *pm.config.Default == policyDefaultAllow && depsPolicy == policyDefaultAllow {
-		dangerousAllowed = isPermissionAllowed(DangerousPermissions, req, true)
+		dangerousAllowed = isPermissionAllowed(dangerousPermissions, req, true)
 	} else {
 		// dangerousAllowed = isPermissionAllowed(DangerousPermissions, depName)
-		dangerousAllowed = isPermissionAllowed(DangerousPermissions, req, false)
+		dangerousAllowed = isPermissionAllowed(dangerousPermissions, req, false)
 	}
 	mylog(" . Allowed dangerous:", strconv.FormatBool(dangerousAllowed))
 
@@ -132,6 +141,8 @@ func (pm *PermissionsManager) OnAccess(key string, matches permMatches, resType 
 
 	// Need to always walk the stack, since the calling dep could be part of a callback.
 	// Assume a default policy or disallow.
+
+	// NOTE: we can stop here if dangerous is not allowed.. unless we are in learning mode.
 	frames = runtime.CallersFrames(rpc)
 	i = 0
 	var directDep string
@@ -145,9 +156,12 @@ func (pm *PermissionsManager) OnAccess(key string, matches permMatches, resType 
 
 		// Can cache these.
 		currIs3P := isExternalDependency(curr.File)
-		isRuntime := isRuntime(curr.File)
+		// isRuntime := isRuntime(curr.File)
 		// TODO: isPermissionManager
-		isLocal := !currIs3P && !isRuntime
+		// We consider the runtime to be part of the local program.
+		// This ensures we account for calls that are made at load time,
+		// before the main program runs.
+		isLocal := !currIs3P //|| isRuntime
 
 		// isRuntime shoudl be tru but is false when the call is made
 		// from the runtime at load time, before the main program runs.
@@ -159,19 +173,20 @@ func (pm *PermissionsManager) OnAccess(key string, matches permMatches, resType 
 		// NOTE: we cannot just check if the package is local due to
 		// callbacks.
 		// TODO: this code should be properly seperated.
+
 		if isLocal {
-			ContextPermissions := pm.getContextPermissionsForDep(key, matches, resType, string(ambientAuthority))
+			contextPermissions := pm.getContextPermissionsForDep(key, matches, resType, string(ambientAuthority))
 			if *pm.config.Default == policyDefaultDisallow {
 				if !foundLocal {
 					foundLocal = true
 					// Not allowed by default.
-					if !isPermissionAllowed(ContextPermissions, req, false) {
+					if !isPermissionAllowed(contextPermissions, req, false) {
 						mylog(" . Allowed context: false -", string(ambientAuthority))
 						break
 					}
 				}
 			} else {
-				if !isPermissionAllowed(ContextPermissions, req, true) {
+				if !isPermissionAllowed(contextPermissions, req, true) {
 					mylog(" . Allowed context: false -", string(ambientAuthority))
 					break
 				}
@@ -180,7 +195,7 @@ func (pm *PermissionsManager) OnAccess(key string, matches permMatches, resType 
 
 		packageName := getPackageName(curr.Function)
 		if currIs3P {
-			ContextPermissions := pm.getContextPermissionsForDep(key, matches, resType, packageName)
+			contextPermissions := pm.getContextPermissionsForDep(key, matches, resType, packageName)
 			if !found3P && !prevIs3P {
 				directDep = packageName
 				mylog(" . Direct dep -", packageName)
@@ -189,20 +204,20 @@ func (pm *PermissionsManager) OnAccess(key string, matches permMatches, resType 
 				if !found3P && !prevIs3P {
 					// Direct dependency.
 					found3P = true
-					if !isPermissionAllowed(ContextPermissions, req, false) {
+					if !isPermissionAllowed(contextPermissions, req, false) {
 						mylog(" . Allowed context: false (direct) -", packageName)
 						break
 					}
 				} else {
 					// If the req type is not nil, we must honour the user's configuation
 					// and consider non-declared entries as not allowed.
-					if !isPermissionAllowed(ContextPermissions, req, true) {
+					if !isPermissionAllowed(contextPermissions, req, true) {
 						mylog(" . Allowed context: false -", packageName)
 						break
 					}
 				}
 			} else {
-				if !isPermissionAllowed(ContextPermissions, req, true) {
+				if !isPermissionAllowed(contextPermissions, req, true) {
 					mylog(" . Allowed context: false -", packageName)
 					break
 				}
@@ -224,8 +239,17 @@ func (pm *PermissionsManager) OnAccess(key string, matches permMatches, resType 
 	}
 
 	if !dangerousAllowed && !allowed {
-		pm.violationCb(directDep, depName, resType, key, req)
+		return pm.violationCb(&Stack{
+			DirectPkg: directDep,
+			CallerPkg: depName,
+			ResType:   resType,
+			ResName:   key,
+			Access:    req,
+			rpcs:      pc,
+		})
 	}
+
+	return nil
 }
 
 func (pm *PermissionsManager) getContextPermissionsForDep(resName string, fmatch permMatches, resType ResourceType, depName string) *Access {
@@ -274,6 +298,7 @@ func (pm *PermissionsManager) getContextPermissionsForDep(resName string, fmatch
 		no := AccessNone
 		return &no
 	}
+
 	return &r
 }
 

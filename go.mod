@@ -2,6 +2,8 @@ module github.com/ossf/scorecard/v4
 
 go 1.19
 
+replace github.com/laurentsimon/permissions-go => /usr/local/google/home/laurentsimon/scorecard/scorecard/permissions
+
 require (
 	github.com/rhysd/actionlint v1.6.15
 	gotest.tools v2.2.0+incompatible
@@ -24,6 +26,7 @@ require (
 	github.com/grafeas/kritis v0.2.3-0.20210120183821-faeba81c520c
 	github.com/h2non/filetype v1.1.3
 	github.com/jszwec/csvutil v1.7.1
+	github.com/laurentsimon/permissions-go v1.0.0
 	github.com/moby/buildkit v0.10.3
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/gomega v1.24.1
