@@ -20,6 +20,9 @@ permissions:
     # like `env` in this case, other resources (fs, net, etc)
     # are assummed to be a deny if not explicitly declared.
     # Similarily, resource names not listed are assummed denied.
+    # this helps for usability: a user who reads the permission file
+    # knows exctaly the maximum permission given to a package. They may be a subset
+    # given the caller's permission.
     env:
       '*': r
   github.com/spf13/cobra:
