@@ -33,11 +33,13 @@ import (
 //go:embed go.perm.yml
 var b []byte
 
-var permissionManager *permissions.PermissionsManager
+var pm *permissions.PermissionsManager
 
-// TODO: proper argument: dd, cd, access, resource type, resource name
-// TODO: use interface
-func onViolation(s *permissions.Stack,
+type pmCb struct{}
+
+var cb pmCb
+
+func (pmCb) OnAccessDenied(s *permissions.AccessMetadata,
 ) error {
 	fmt.Fprintln(os.Stderr, "VIOLATION")
 	fmt.Fprintln(os.Stderr, "directDep", s.DirectPkg)
@@ -45,7 +47,7 @@ func onViolation(s *permissions.Stack,
 	fmt.Fprintln(os.Stderr, "resName", s.ResName)
 	fmt.Fprintln(os.Stderr, "req", s.Access)
 	fmt.Fprintln(os.Stderr, "resType", s.ResType)
-	// can walk the stack for printing.
+	// can walk the AccessMetadata for printing.
 	j, _ := s.ToJSON()
 	fmt.Printf("%s", j)
 	return fmt.Errorf("%w: xxx", permissions.ErrPermissionManagerViolation)
@@ -53,9 +55,33 @@ func onViolation(s *permissions.Stack,
 	// return fmt.Errorf("%w: xxx", permissions.ErrPermissionManagerViolation)
 }
 
+func (pmCb) OnAccessGranted(s *permissions.AccessMetadata,
+) {
+	// fmt.Fprintln(os.Stderr, "VIOLATION")
+	// fmt.Fprintln(os.Stderr, "directDep", s.DirectPkg)
+	// fmt.Fprintln(os.Stderr, "callerDep", s.CallerPkg)
+	// fmt.Fprintln(os.Stderr, "resName", s.ResName)
+	// fmt.Fprintln(os.Stderr, "req", s.Access)
+	// fmt.Fprintln(os.Stderr, "resType", s.ResType)
+	// // can walk the AccessMetadata for printing.
+	j, _ := s.ToJSON()
+	r := fmt.Sprintf("%s", j)
+	fmt.Println(r)
+	_, err := permsLogFile.Write([]byte(r))
+	if err != nil {
+		panic(err)
+	}
+}
+
+var permsLogFile *os.File
+
 func init() {
 	var err error
-	permissionManager, err = permissions.NewPermissionManagerFromData(b, onViolation)
+	permsLogFile, err = os.OpenFile("trace.txt", os.O_RDWR|os.O_CREATE, 0755)
+	if err != nil {
+		panic(err)
+	}
+	pm, err = permissions.NewPermissionManagerFromData(b, cb)
 	if err != nil {
 		panic(err)
 	}
@@ -79,8 +105,8 @@ func main() {
 	if err := cmd.New(opts).Execute(); err != nil {
 		log.Fatalf("error during command execution: %v", err)
 	}
-	fmt.Fprintln(os.Stderr, "times", permissions.Times[:permissions.Times_c])
-	fmt.Fprintln(os.Stderr, "median:", median(permissions.Times[:permissions.Times_c]))
+	// fmt.Fprintln(os.Stderr, "times", permissions.Times[:permissions.Times_c])
+	// fmt.Fprintln(os.Stderr, "median:", median(permissions.Times[:permissions.Times_c]))
 }
 
 // https://gosamples.dev/calculate-median/

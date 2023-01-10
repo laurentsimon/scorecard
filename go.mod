@@ -2,7 +2,7 @@ module github.com/ossf/scorecard/v4
 
 go 1.19
 
-replace github.com/laurentsimon/permissions-go => /usr/local/google/home/laurentsimon/scorecard/scorecard/permissions
+replace github.com/laurentsimon/permissions-go => /usr/local/google/home/laurentsimon/scorecard/permissions-go
 
 require (
 	github.com/rhysd/actionlint v1.6.15
