@@ -97,7 +97,6 @@ files: /etc/nsswitch.conf isRuntime not detected properly coz runtime
 
 func main() {
 	// fmt.Println(fsMatches("/etc/ssl/certs/*", "/etc/ssl/certs"))
-	// os.Exit(2)
 	godep2.TestEnv("FROM_MAIN_DEP2")
 	godep2.TestEnvThruDep3("MAIN_DEP2_DEP3")
 	os.Getenv("FROM_MAIN_REALLY")
