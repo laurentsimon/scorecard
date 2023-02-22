@@ -16,7 +16,6 @@ package checks
 
 import (
 	"github.com/ossf/scorecard/v4/checker"
-	evaluation "github.com/ossf/scorecard/v4/checks/evaluation/permissions"
 	"github.com/ossf/scorecard/v4/checks/raw"
 	sce "github.com/ossf/scorecard/v4/errors"
 )
@@ -50,5 +49,5 @@ func TokenPermissions(c *checker.CheckRequest) checker.CheckResult {
 	}
 
 	// Return the score evaluation.
-	return evaluation.TokenPermissions(CheckTokenPermissions, c, &rawData)
+	return checker.CheckResult{} // evaluation.TokenPermissions(CheckTokenPermissions, c, &rawData)
 }
