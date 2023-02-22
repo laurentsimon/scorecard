@@ -60,6 +60,8 @@ const (
 	OutcomeNotApplicable
 	// OutcomeNotSupported indicates a non-supported outcome.
 	OutcomeNotSupported
+	// OutcomeUnknown indicates an unknown outcome.
+	OutcomeUnknown
 )
 
 // Finding represents a finding.
