@@ -28,6 +28,7 @@ import (
 	"github.com/ossf/scorecard/v4/log"
 	"github.com/ossf/scorecard/v4/options"
 	spol "github.com/ossf/scorecard/v4/policy"
+	"github.com/ossf/scorecard/v4/ruleimpl"
 )
 
 // ScorecardInfo contains information about the scorecard code that was run.
@@ -118,7 +119,17 @@ func FormatResults(
 	case options.FormatJSON:
 		err = results.AsJSON2(opts.ShowDetails, log.ParseLevel(opts.LogLevel), doc, os.Stdout)
 	case options.FormatSJSON:
-		err = results.AsSJSON(opts.ShowDetails, log.ParseLevel(opts.LogLevel), doc, os.Stdout)
+		// TODO: use the rule results into the check policy runner.
+		// TODO: handle errors without taking down scorecard entirely
+		// TODO: when all checks are migrated, we can move the ruleimpl.Run() call to checker.
+		// TODO: pass config file
+		findings, err := ruleimpl.Run(&results.RawResults)
+		if err == nil {
+			err = results.AsFlatJSON(findings, os.Stdout)
+		}
+		// policy example.
+
+		// err = results.AsSJSON(opts.ShowDetails, log.ParseLevel(opts.LogLevel), doc, os.Stdout)
 	case options.FormatRaw:
 		err = results.AsRawJSON(os.Stdout)
 	default:
