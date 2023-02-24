@@ -1,0 +1,42 @@
+version: 1
+checks:
+- name: Fuzzing
+  require:
+    or:
+    - probe: FuzzedWithCIFuzz
+    - probe: FuzzedWithClusterFuzzLite
+    - probe: FuzzedWithGoNative
+    - probe: FuzzedWithOSSFuzz
+  positiveText: The project is fuzzed using one the fuzzers.
+  negativeText: Configure one of the recognized fuzzers.
+  risk: Low
+- name: BinaryArtifacts
+  require:
+    probe: BinaryOtherNotPresent
+  positiveText: No binaries present.
+  negativeText: Remove binary artifacts.
+  risk: High
+- name: GradleBinaryArtifacts
+  require:
+    and:
+    - probe: BinaryGradleNotPresent
+    - probe: BinaryGradleWrapperAction
+  positiveText: Gradle binaries not present or handled safely.
+  negativeText: Remove the binary (BinaryGradleNotPresent) or install the Action (BinaryGradleWrapperAction).
+  risk: High
+- name: MavenBinaryNoArtifacts
+  require:
+    and:
+    - probe: BinaryMavenNotPresent
+    - probe: BinaryMavenWrapperAction
+  positiveText: Maven binaries not present or handled safely.
+  negativeText: Remove the binary (BinaryMavenNotPresent) or install the Action (BinaryMavenWrapperAction).
+  risk: High
+- name: BranchProtectionEnabled
+  require:
+    and:
+    - probe: BranchProtectionNoForcePushDisabled
+    - probe: BranchProtectionStatusCheckEnabled
+  positiveText: Branch protection settings all configured.
+  negativeText: Enable all the settings according to the steps definned in BranchProtectionNoForcePushDisabled and BranchProtectionStatusCheckEnabled.
+  risk: High

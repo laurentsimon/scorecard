@@ -16,7 +16,6 @@ package checks
 
 import (
 	"github.com/ossf/scorecard/v4/checker"
-	"github.com/ossf/scorecard/v4/checks/evaluation"
 	"github.com/ossf/scorecard/v4/checks/raw"
 	sce "github.com/ossf/scorecard/v4/errors"
 )
@@ -45,5 +44,5 @@ func Fuzzing(c *checker.CheckRequest) checker.CheckResult {
 		c.RawResults.FuzzingResults = rawData
 	}
 
-	return evaluation.Fuzzing(CheckFuzzing, c.Dlogger, &rawData)
+	return checker.CheckResult{} // evaluation.Fuzzing(CheckFuzzing, c.Dlogger, &rawData)
 }

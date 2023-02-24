@@ -1,0 +1,13 @@
+version: 1
+checks:
+- name: NestedCheck
+  require:
+    and:
+    - probe: Probe1
+    - probe: Probe2
+    - or:
+      - probe: Nested1
+      - probe: Nested2
+  positiveText: pass
+  negativeText: fail
+  risk: Critical
