@@ -19,12 +19,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ossf/scorecard/v4/checker"
 	docs "github.com/ossf/scorecard/v4/docs/checks"
 	sce "github.com/ossf/scorecard/v4/errors"
 	"github.com/ossf/scorecard/v4/finding"
 	"github.com/ossf/scorecard/v4/log"
-	rules "github.com/ossf/scorecard/v4/rule"
 )
 
 // nolint: govet
@@ -88,7 +86,7 @@ type JSONScorecardResultV2 struct {
 
 // nolint: govet
 type jsonCheckResultV3 struct {
-	Risk     rules.Risk        `json:"risk"`
+	// Risk     rules.Risk        `json:"risk"`
 	Outcome  finding.Outcome   `json:"outcome"`
 	Findings []finding.Finding `json:"findings"`
 	Score    int               `json:"score"`
@@ -191,77 +189,6 @@ func (r *ScorecardResult) AsJSON2(showDetails bool,
 					continue
 				}
 				tmpResult.Details = append(tmpResult.Details, m)
-			}
-		}
-		out.Checks = append(out.Checks, tmpResult)
-	}
-	if err := encoder.Encode(out); err != nil {
-		return sce.WithMessage(sce.ErrScorecardInternal, fmt.Sprintf("encoder.Encode: %v", err))
-	}
-
-	return nil
-}
-
-func (r *ScorecardResult) AsSJSON(showDetails bool,
-	logLevel log.Level, checkDocs docs.Doc, writer io.Writer,
-) error {
-	score, err := r.GetAggregateScore(checkDocs)
-	if err != nil {
-		return err
-	}
-
-	encoder := json.NewEncoder(writer)
-	out := JSONScorecardResultV3{
-		Repo: jsonRepoV2{
-			Name:   r.Repo.Name,
-			Commit: r.Repo.CommitSHA,
-		},
-		Scorecard: jsonScorecardV2{
-			Version: r.Scorecard.Version,
-			Commit:  r.Scorecard.CommitSHA,
-		},
-		Date:           r.Date.Format("2006-01-02"),
-		Metadata:       r.Metadata,
-		AggregateScore: jsonFloatScore(score),
-	}
-
-	for _, checkResult := range r.Checks {
-		doc, e := checkDocs.GetCheck(checkResult.Name)
-		if e != nil {
-			return sce.WithMessage(sce.ErrScorecardInternal, fmt.Sprintf("GetCheck: %s: %v", checkResult.Name, e))
-		}
-
-		tmpResult := jsonCheckResultV3{
-			Name: checkResult.Name,
-			Doc: jsonCheckDocumentationV2{
-				URL:   doc.GetDocumentationURL(r.Scorecard.CommitSHA),
-				Short: doc.GetShort(),
-			},
-			Reason:  checkResult.Reason,
-			Score:   checkResult.Score,
-			Risk:    rules.RiskNone,
-			Outcome: finding.OutcomePositive,
-		}
-		if showDetails {
-			for i := range checkResult.Details {
-				if checkResult.Details[i].Type == checker.DetailDebug && logLevel != log.DebugLevel {
-					continue
-				}
-
-				f := checkResult.Details[i].Msg.Finding
-				if f == nil {
-					continue
-				}
-
-				if f.Risk.GreaterThan(tmpResult.Risk) {
-					tmpResult.Risk = f.Risk
-				}
-
-				if f.Outcome.WorseThan(tmpResult.Outcome) {
-					tmpResult.Outcome = f.Outcome
-				}
-
-				tmpResult.Findings = append(tmpResult.Findings, *f)
 			}
 		}
 		out.Checks = append(out.Checks, tmpResult)

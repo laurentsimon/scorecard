@@ -12,36 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ruleimpl
+package runner
 
 import (
-	"embed"
-
 	"github.com/ossf/scorecard/v4/checker"
 	"github.com/ossf/scorecard/v4/finding"
+	"github.com/ossf/scorecard/v4/rule/definitions"
 )
 
-//go:embed *.yml
-var rules embed.FS
-
-type ruleImpl func(embed.FS, *checker.RawResults) ([]finding.Finding, error)
-
-var rulesToRun []ruleImpl
-
-func registerRule(impl ruleImpl) error {
-	rulesToRun = append(rulesToRun, impl)
-	return nil
-}
-
-// This is a place holder that would run all rules
-// registered. For now, it simply hard codes the rules frm the permission checks.
 func Run(raw *checker.RawResults) ([]finding.Finding, error) {
 	var findings []finding.Finding
-	for _, item := range rulesToRun {
+	for _, item := range definitions.EntriesToRun {
 		f := item
-		// TODO: handle error
+		// TODO: handle error so that it does not take down the entire
+		// run.
 		// TODO: this should be run concurrently.
-		ff, _ := f(rules, raw)
+		ff, err := f(raw)
+		if err != nil {
+			return nil, err
+		}
 		if len(ff) > 0 {
 			findings = append(findings, ff...)
 		}

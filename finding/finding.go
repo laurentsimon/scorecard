@@ -67,9 +67,9 @@ const (
 // Finding represents a finding.
 // nolint: govet
 type Finding struct {
-	Rule        string            `json:"rule"`
-	Outcome     Outcome           `json:"outcome"`
-	Risk        rule.Risk         `json:"risk"`
+	Rule    string  `json:"rule"`
+	Outcome Outcome `json:"outcome"`
+	// Risk        rule.Risk         `json:"risk"`
 	Message     string            `json:"message"`
 	Location    *Location         `json:"location,omitempty"`
 	Remediation *rule.Remediation `json:"remediation,omitempty"`
@@ -87,9 +87,32 @@ func New(loc embed.FS, ruleID string) (*Finding, error) {
 		Outcome:     OutcomeNegative,
 		Remediation: r.Remediation,
 	}
-	if r.Remediation != nil {
-		f.Risk = r.Risk
+	// if r.Remediation != nil {
+	// 	f.Risk = r.Risk
+	// }
+	return f, nil
+}
+
+func NewWith(fs embed.FS, ruleID, text string, loc *Location,
+	o Outcome,
+) (*Finding, error) {
+	f, err := New(fs, ruleID)
+	if err != nil {
+		return nil, fmt.Errorf("finding.New: %w", err)
 	}
+
+	f = f.WithMessage(text).WithOutcome(o).WithLocation(loc)
+	return f, nil
+}
+
+func NewNegative(fs embed.FS, ruleID, text string, loc *Location,
+) (*Finding, error) {
+	f, err := NewWith(fs, ruleID, text, loc, OutcomeNegative)
+	if err != nil {
+		return nil, fmt.Errorf("finding.NewWith: %w", err)
+	}
+
+	f = f.WithMessage(text).WithOutcome(OutcomeNegative).WithLocation(loc)
 	return f, nil
 }
 

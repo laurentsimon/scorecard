@@ -23,12 +23,14 @@ import (
 	"github.com/olekukonko/tablewriter"
 
 	"github.com/ossf/scorecard/v4/checker"
+	"github.com/ossf/scorecard/v4/checkeval"
 	"github.com/ossf/scorecard/v4/docs/checks"
 	sce "github.com/ossf/scorecard/v4/errors"
+	"github.com/ossf/scorecard/v4/finding"
 	"github.com/ossf/scorecard/v4/log"
 	"github.com/ossf/scorecard/v4/options"
 	spol "github.com/ossf/scorecard/v4/policy"
-	"github.com/ossf/scorecard/v4/ruleimpl"
+	rules "github.com/ossf/scorecard/v4/rule/runner"
 )
 
 // ScorecardInfo contains information about the scorecard code that was run.
@@ -118,18 +120,22 @@ func FormatResults(
 		err = results.AsSARIF(opts.ShowDetails, log.ParseLevel(opts.LogLevel), os.Stdout, doc, policy)
 	case options.FormatJSON:
 		err = results.AsJSON2(opts.ShowDetails, log.ParseLevel(opts.LogLevel), doc, os.Stdout)
-	case options.FormatSJSON:
-		// TODO: use the rule results into the check policy runner.
-		// TODO: handle errors without taking down scorecard entirely
-		// TODO: when all checks are migrated, we can move the ruleimpl.Run() call to checker.
-		// TODO: pass config file
-		findings, err := ruleimpl.Run(&results.RawResults)
+	case options.FormatPJSON:
+		var findings []finding.Finding
+		findings, err = rules.Run(&results.RawResults)
 		if err == nil {
-			err = results.AsFlatJSON(findings, os.Stdout)
+			err = results.AsPJSON(findings, os.Stdout)
 		}
-		// policy example.
-
-		// err = results.AsSJSON(opts.ShowDetails, log.ParseLevel(opts.LogLevel), doc, os.Stdout)
+	case options.FormatSJSON:
+		var findings []finding.Finding
+		findings, err = rules.Run(&results.RawResults)
+		if err == nil {
+			var eval *checkeval.Evaluation
+			eval, err = checkeval.Run(findings, opts.PolicyFile)
+			if err == nil {
+				err = results.AsSJSON(eval, os.Stdout)
+			}
+		}
 	case options.FormatRaw:
 		err = results.AsRawJSON(os.Stdout)
 	default:

@@ -19,26 +19,26 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ossf/scorecard/v4/checkeval"
 	sce "github.com/ossf/scorecard/v4/errors"
-	"github.com/ossf/scorecard/v4/finding"
 )
 
-// JSONScorecardResultV4 exports results as JSON for flat findings without checks.
+// JSONScorecardEvalResult exports results as JSON for checks expressed thru a policy.
 //
 //nolint:govet
-type JSONScorecardResultV4 struct {
-	Date      string            `json:"date"`
-	Repo      jsonRepoV2        `json:"repo"`
-	Scorecard jsonScorecardV2   `json:"scorecard"`
-	Findings  []finding.Finding `json:"findings"`
-	Metadata  []string          `json:"metadata"`
+type JSONScorecardEvalResult struct {
+	Date      string               `json:"date"`
+	Repo      jsonRepoV2           `json:"repo"`
+	Scorecard jsonScorecardV2      `json:"scorecard"`
+	Checks    checkeval.Evaluation `json:"checks"`
+	Metadata  []string             `json:"metadata"`
 }
 
 // TODO: finsinds should enventually be part of the scorecard structure.
-func (r *ScorecardResult) AsFlatJSON(findings []finding.Finding, writer io.Writer,
+func (r *ScorecardResult) AsSJSON(eval *checkeval.Evaluation, writer io.Writer,
 ) error {
 	encoder := json.NewEncoder(writer)
-	out := JSONScorecardResultV4{
+	out := JSONScorecardEvalResult{
 		Repo: jsonRepoV2{
 			Name:   r.Repo.Name,
 			Commit: r.Repo.CommitSHA,
@@ -49,7 +49,7 @@ func (r *ScorecardResult) AsFlatJSON(findings []finding.Finding, writer io.Write
 		},
 		Date:     r.Date.Format("2006-01-02"),
 		Metadata: r.Metadata,
-		Findings: findings,
+		Checks:   *eval,
 	}
 
 	if err := encoder.Encode(out); err != nil {
