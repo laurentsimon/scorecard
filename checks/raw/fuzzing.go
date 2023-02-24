@@ -31,7 +31,7 @@ const (
 	fuzzerOSSFuzz         = "OSSFuzz"
 	fuzzerClusterFuzzLite = "ClusterFuzzLite"
 	oneFuzz               = "OneFuzz"
-	fuzzerBuiltInGo       = "GoBuiltInFuzzer"
+	fuzzerBuiltInGo       = "GoNativeFuzzer"
 	// TODO: add more fuzzing check supports.
 )
 

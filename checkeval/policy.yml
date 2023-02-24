@@ -1,0 +1,12 @@
+version: 1
+checks:
+- name: Fuzzing
+  require:
+    or:
+    - probe: fuzzedWithOneFuzz
+    - probe: fuzzedWithClusterFuzzLite
+    - probe: fuzzedWithGoNative
+    - probe: fuzzedWithOSSFuzz
+  positiveText: The project is fuzzed using one the fuzzers.
+  negativeText: Configure one of the recognized fuzzers.
+  risk: Low

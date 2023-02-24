@@ -58,45 +58,30 @@ type jsonRemediation struct {
 
 // nolint: govet
 type jsonRule struct {
-	Short          string          `yaml:"short"`
-	Desc           string          `yaml:"desc"`
-	Motivation     string          `yaml:"motivation"`
-	Implementation string          `yaml:"implementation"`
-	Risk           Risk            `yaml:"risk"`
-	Remediation    jsonRemediation `yaml:"remediation"`
+	ID             string `yaml:"id"`
+	Short          string `yaml:"short"`
+	Desc           string `yaml:"desc"`
+	Motivation     string `yaml:"motivation"`
+	Implementation string `yaml:"implementation"`
+	// Risk           Risk            `yaml:"risk"`
+	Remediation jsonRemediation `yaml:"remediation"`
 }
-
-// Risk indicates a risk.
-type Risk int
-
-const (
-	// RiskNone is a no risk.
-	RiskNone Risk = iota
-	// RiskLow is a low risk.
-	RiskLow
-	// RiskMedium is a medium risk.
-	RiskMedium
-	// RiskHigh is a high risk.
-	RiskHigh
-	// RiskCritical is a critical risk.
-	RiskCritical
-)
 
 // nolint: govet
 type Rule struct {
-	Name        string
-	Short       string
-	Desc        string
-	Motivation  string
-	Risk        Risk
+	Name       string
+	Short      string
+	Desc       string
+	Motivation string
+	// Risk        Risk
 	Remediation *Remediation
 }
 
 var errInvalid = errors.New("invalid")
 
 // New create a new rule.
-func New(loc embed.FS, rule string) (*Rule, error) {
-	content, err := loc.ReadFile(fmt.Sprintf("%s.yml", rule))
+func New(loc embed.FS, ruleID string) (*Rule, error) {
+	content, err := loc.ReadFile("def.yml")
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", errInvalid, err)
 	}
@@ -106,16 +91,16 @@ func New(loc embed.FS, rule string) (*Rule, error) {
 		return nil, err
 	}
 
-	if err := validate(r); err != nil {
+	if err := validate(r, ruleID); err != nil {
 		return nil, err
 	}
 
 	return &Rule{
-		Name:       rule,
+		Name:       r.ID,
 		Short:      r.Short,
 		Desc:       r.Desc,
 		Motivation: r.Motivation,
-		Risk:       r.Risk,
+		// Risk:       r.Risk,
 		Remediation: &Remediation{
 			Text:     strings.Join(r.Remediation.Text, "\n"),
 			Markdown: strings.Join(r.Remediation.Markdown, "\n"),
@@ -124,12 +109,23 @@ func New(loc embed.FS, rule string) (*Rule, error) {
 	}, nil
 }
 
-func validate(r *jsonRule) error {
-	if err := validateRisk(r.Risk); err != nil {
+func validate(r *jsonRule, ruleID string) error {
+	if err := validateID(r.ID, ruleID); err != nil {
 		return fmt.Errorf("%w: %v", errInvalid, err)
 	}
+	// if err := validateRisk(r.Risk); err != nil {
+	// 	return fmt.Errorf("%w: %v", errInvalid, err)
+	// }
 	if err := validateRemediation(r.Remediation); err != nil {
 		return fmt.Errorf("%w: %v", errInvalid, err)
+	}
+	return nil
+}
+
+func validateID(actual, expected string) error {
+	if actual != expected {
+		return fmt.Errorf("%w: read '%v', expected '%v'", errInvalid,
+			actual, expected)
 	}
 	return nil
 }
@@ -140,15 +136,6 @@ func validateRemediation(r jsonRemediation) error {
 		return nil
 	default:
 		return fmt.Errorf("%w: %v", errInvalid, fmt.Sprintf("remediation '%v'", r))
-	}
-}
-
-func validateRisk(r Risk) error {
-	switch r {
-	case RiskNone, RiskLow, RiskHigh, RiskMedium, RiskCritical:
-		return nil
-	default:
-		return fmt.Errorf("%w: %v", errInvalid, fmt.Sprintf("risk '%v'", r))
 	}
 }
 
@@ -184,31 +171,6 @@ func (r *RemediationEffort) UnmarshalYAML(n *yaml.Node) error {
 	return nil
 }
 
-// UnmarshalYAML is a custom unmarshalling function
-// to transform the string into an enum.
-func (r *Risk) UnmarshalYAML(n *yaml.Node) error {
-	var str string
-	if err := n.Decode(&str); err != nil {
-		return fmt.Errorf("%w: %v", errInvalid, err)
-	}
-
-	switch n.Value {
-	case "None":
-		*r = RiskNone
-	case "Low":
-		*r = RiskLow
-	case "High":
-		*r = RiskHigh
-	case "Medium":
-		*r = RiskMedium
-	case "Critical":
-		*r = RiskCritical
-	default:
-		return fmt.Errorf("%w: %q", errInvalid, str)
-	}
-	return nil
-}
-
 // String stringifies the enum.
 func (r *RemediationEffort) String() string {
 	switch *r {
@@ -221,27 +183,4 @@ func (r *RemediationEffort) String() string {
 	default:
 		return ""
 	}
-}
-
-// String stringifies the enum.
-func (r *Risk) String() string {
-	switch *r {
-	case RiskNone:
-		return "None"
-	case RiskLow:
-		return "Low"
-	case RiskHigh:
-		return "High"
-	case RiskMedium:
-		return "Medium"
-	case RiskCritical:
-		return "Critical"
-	default:
-		return ""
-	}
-}
-
-// GreaterThan compare risks.
-func (r *Risk) GreaterThan(rr Risk) bool {
-	return *r > rr
 }
