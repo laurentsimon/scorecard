@@ -12,28 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package runner
+package fuzzedWithGoNative
 
 import (
+	"embed"
+
 	"github.com/ossf/scorecard/v4/checker"
 	"github.com/ossf/scorecard/v4/finding"
-	"github.com/ossf/scorecard/v4/rule/definitions"
+	"github.com/ossf/scorecard/v4/ruledefs/utils"
 )
 
+//go:embed *.yml
+var fs embed.FS
+
 func Run(raw *checker.RawResults) ([]finding.Finding, error) {
-	var findings []finding.Finding
-	for _, item := range definitions.EntriesToRun {
-		f := item
-		// TODO: handle error so that it does not take down the entire
-		// run.
-		// TODO: this should be run concurrently.
-		ff, err := f(raw)
-		if err != nil {
-			return nil, err
-		}
-		if len(ff) > 0 {
-			findings = append(findings, ff...)
-		}
-	}
-	return findings, nil
+	return utils.FuzzerRun(raw, fs, "fuzzedWithGoNative", "GoNativeFuzzer")
 }

@@ -12,19 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package fuzzedWithClusterFuzzLite
+package fuzzedWithOSSFuzz
 
 import (
 	"embed"
 
 	"github.com/ossf/scorecard/v4/checker"
 	"github.com/ossf/scorecard/v4/finding"
-	"github.com/ossf/scorecard/v4/rule/utils"
+	"github.com/ossf/scorecard/v4/ruledefs/utils"
 )
 
 //go:embed *.yml
 var fs embed.FS
 
 func Run(raw *checker.RawResults) ([]finding.Finding, error) {
-	return utils.FuzzerRun(raw, fs, "fuzzedWithClusterFuzzLite", "ClusterFuzzLite")
+	return utils.FuzzerRun(raw, fs, "fuzzedWithOSSFuzz", "OSSFuzz")
 }
