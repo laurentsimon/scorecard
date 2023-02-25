@@ -12,26 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package definitions
+package runner
 
 import (
 	"github.com/ossf/scorecard/v4/checker"
 	"github.com/ossf/scorecard/v4/finding"
-	"github.com/ossf/scorecard/v4/rule/definitions/fuzzedWithClusterFuzzLite"
-	"github.com/ossf/scorecard/v4/rule/definitions/fuzzedWithGoNative"
-	"github.com/ossf/scorecard/v4/rule/definitions/fuzzedWithOSSFuzz"
-	"github.com/ossf/scorecard/v4/rule/definitions/fuzzedWithOneFuzz"
-	"github.com/ossf/scorecard/v4/rule/definitions/gitHubWorkflowPermissionsTopNoWrite"
+	"github.com/ossf/scorecard/v4/ruledefs"
 )
 
-type entryImpl func(*checker.RawResults) ([]finding.Finding, error)
-
-var EntriesToRun = []entryImpl{
-	// Workflow permissions.
-	gitHubWorkflowPermissionsTopNoWrite.Run,
-	// Fuzzing.
-	fuzzedWithOSSFuzz.Run,
-	fuzzedWithOneFuzz.Run,
-	fuzzedWithGoNative.Run,
-	fuzzedWithClusterFuzzLite.Run,
+func Run(raw *checker.RawResults) ([]finding.Finding, error) {
+	var findings []finding.Finding
+	for _, item := range ruledefs.EntriesToRun {
+		f := item
+		// TODO: handle error so that it does not take down the entire
+		// run.
+		// TODO: this should be run concurrently.
+		ff, err := f(raw)
+		if err != nil {
+			return nil, err
+		}
+		if len(ff) > 0 {
+			findings = append(findings, ff...)
+		}
+	}
+	return findings, nil
 }

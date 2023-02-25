@@ -30,7 +30,7 @@ import (
 	"github.com/ossf/scorecard/v4/log"
 	"github.com/ossf/scorecard/v4/options"
 	spol "github.com/ossf/scorecard/v4/policy"
-	rules "github.com/ossf/scorecard/v4/rule/runner"
+	rulerunner "github.com/ossf/scorecard/v4/ruledefs/runner"
 )
 
 // ScorecardInfo contains information about the scorecard code that was run.
@@ -122,13 +122,13 @@ func FormatResults(
 		err = results.AsJSON2(opts.ShowDetails, log.ParseLevel(opts.LogLevel), doc, os.Stdout)
 	case options.FormatPJSON:
 		var findings []finding.Finding
-		findings, err = rules.Run(&results.RawResults)
+		findings, err = rulerunner.Run(&results.RawResults)
 		if err == nil {
 			err = results.AsPJSON(findings, os.Stdout)
 		}
 	case options.FormatSJSON:
 		var findings []finding.Finding
-		findings, err = rules.Run(&results.RawResults)
+		findings, err = rulerunner.Run(&results.RawResults)
 		if err == nil {
 			var eval *checkeval.Evaluation
 			eval, err = checkeval.Run(findings, opts.PolicyFile)

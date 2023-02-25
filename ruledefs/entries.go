@@ -12,19 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package fuzzedWithGoNative
+package ruledefs
 
 import (
-	"embed"
-
 	"github.com/ossf/scorecard/v4/checker"
 	"github.com/ossf/scorecard/v4/finding"
-	"github.com/ossf/scorecard/v4/rule/utils"
+	"github.com/ossf/scorecard/v4/ruledefs/fuzzedWithClusterFuzzLite"
+	"github.com/ossf/scorecard/v4/ruledefs/fuzzedWithGoNative"
+	"github.com/ossf/scorecard/v4/ruledefs/fuzzedWithOSSFuzz"
+	"github.com/ossf/scorecard/v4/ruledefs/fuzzedWithOneFuzz"
+	"github.com/ossf/scorecard/v4/ruledefs/gitHubWorkflowPermissionsTopNoWrite"
 )
 
-//go:embed *.yml
-var fs embed.FS
+type entryImpl func(*checker.RawResults) ([]finding.Finding, error)
 
-func Run(raw *checker.RawResults) ([]finding.Finding, error) {
-	return utils.FuzzerRun(raw, fs, "fuzzedWithGoNative", "GoNativeFuzzer")
+var EntriesToRun = []entryImpl{
+	// Workflow permissions.
+	gitHubWorkflowPermissionsTopNoWrite.Run,
+	// Fuzzing.
+	fuzzedWithOSSFuzz.Run,
+	fuzzedWithOneFuzz.Run,
+	fuzzedWithGoNative.Run,
+	fuzzedWithClusterFuzzLite.Run,
 }
