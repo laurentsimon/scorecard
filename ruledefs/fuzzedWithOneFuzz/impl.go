@@ -19,7 +19,7 @@ import (
 
 	"github.com/ossf/scorecard/v4/checker"
 	"github.com/ossf/scorecard/v4/finding"
-	"github.com/ossf/scorecard/v4/rule/utils"
+	"github.com/ossf/scorecard/v4/ruledefs/utils"
 )
 
 //go:embed *.yml
