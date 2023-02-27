@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package checkeval
+package evaluation
 
 import (
 	"fmt"
@@ -22,8 +22,8 @@ import (
 
 // Policy specifies a set of tests.
 type Policy struct {
-	Version int     `yaml:"version"`
-	Checks  []Check `yaml:"checks"`
+	Version    int         `yaml:"version"`
+	Statements []Statement `yaml:"statements"`
 }
 
 // Risk indicates a risk.
@@ -42,29 +42,42 @@ const (
 	RiskCritical
 )
 
-type Evaluation []EvaluationResult
+// Logic indicates the logic type
+type Logic int
 
-// Result is the result of a Check.
-type EvaluationResult struct {
+const (
+	// LogicAnd indicates an "And".
+	LogicAnd Logic = iota
+	// LogicOr indicates an "Or".
+	LogicOr
+)
+
+type Evaluation []EvaluatedStatement
+
+// Result is the result of a statement.
+type EvaluatedStatement struct {
 	Name     string            `json:"name"`
 	Outcome  finding.Outcome   `json:"outcome"`
 	Risk     Risk              `json:"risk"`
 	Text     string            `json:"text"`
+	Labels   []string          `json:"labels"`
+	Logic    Logic             `json:"logic"`
 	Findings []finding.Finding `json:"findings"`
 }
 
 // Test specifies a policy for evaluating a set of results and the remediation
 // advice should the results fail the requirements.
-type Check struct {
-	Name         string  `yaml:"name"`
-	Require      *Clause `yaml:"require"`
-	NegativeText string  `yaml:"negativeText"`
-	PositiveText string  `yaml:"positiveText"`
-	Risk         Risk    `yaml:"risk"`
+type Statement struct {
+	Name         string   `yaml:"name"`
+	Require      *Clause  `yaml:"require"`
+	NegativeText string   `yaml:"negativeText"`
+	PositiveText string   `yaml:"positiveText"`
+	Risk         Risk     `yaml:"risk"`
+	Labels       []string `yaml:"labels"`
 }
 type Clause struct {
 	// Exactly one of these fields must be populated.
-	// Check evaluates to true if the specified check passed.
+	// Statement evaluates to true if the specified Statement passed.
 	// TODO: make is a pointer?
 	Probe string `yaml:"probe,omitempty"`
 	// And evalutes to true if its set of clauses all evalute true.
@@ -93,42 +106,47 @@ func PolicyFromBytes(content []byte) (*Policy, error) {
 // Evaluate evaluates the given results with respect to the given policy.
 func (p *Policy) Evaluate(findings []finding.Finding) (*Evaluation, error) {
 	var results Evaluation
-	for i := range p.Checks {
-		check := p.Checks[i]
-		if check.Require == nil {
+	for i := range p.Statements {
+		statement := p.Statements[i]
+		if statement.Require == nil {
 			// TODO: validate in constructor.
 			continue
 		}
-		o, fds := evaluate(check.Require, findings)
-		e := EvaluationResult{
-			Name:     check.Name,
+		o, logic, fds := evaluate(statement.Require, findings)
+		e := EvaluatedStatement{
+			Name:     statement.Name,
 			Outcome:  o,
-			Risk:     check.Risk,
+			Risk:     statement.Risk,
 			Findings: fds,
+			Labels:   statement.Labels,
+			Logic:    logic,
 		}
 		if o != finding.OutcomeNegative {
-			e.Text = check.PositiveText
+			e.Text = statement.PositiveText
 		} else {
-			e.Text = check.NegativeText
+			e.Text = statement.NegativeText
 		}
 		results = append(results, e)
 	}
 	return &results, nil
 }
 
-func evaluate(clause *Clause, findings []finding.Finding) (finding.Outcome, []finding.Finding) {
+func evaluate(clause *Clause, findings []finding.Finding) (finding.Outcome, Logic, []finding.Finding) {
 	var pfds []finding.Finding
 	var ofds []finding.Finding
 	var outcome finding.Outcome
-
+	var logic Logic
 	switch {
 	case clause.Probe != "":
-		return evaluateProbe(clause.Probe, findings)
+		logic = LogicAnd
+		o, fs := evaluateProbe(clause.Probe, findings)
+		return o, logic, fs
 	case clause.Or != nil:
+		logic = LogicOr
 		outcome = finding.OutcomeNegative
 		for i := range clause.Or {
 			c := clause.Or[i]
-			co, cfs := evaluate(c, findings)
+			co, _, cfs := evaluate(c, findings)
 			// NOTE: any better outcome than negative, including not applicable, unknown, etc.
 			if outcome.WorseThan(co) {
 				outcome = co
@@ -140,14 +158,15 @@ func evaluate(clause *Clause, findings []finding.Finding) (finding.Outcome, []fi
 			}
 		}
 	case clause.And != nil:
+		logic = LogicAnd
 		panic("and")
 	case clause.Not != nil:
 		panic("not")
 	}
 	if outcome != finding.OutcomeNegative {
-		return outcome, pfds
+		return outcome, logic, pfds
 	}
-	return outcome, ofds
+	return outcome, logic, ofds
 }
 
 func evaluateProbe(probeID string, findings []finding.Finding) (finding.Outcome, []finding.Finding) {
@@ -163,7 +182,7 @@ func evaluateProbe(probeID string, findings []finding.Finding) (finding.Outcome,
 			o = f.Outcome
 		}
 		// We assume there are not duplicate entries, i.e., that
-		// the same probe is not used multiple times in a check definition.
+		// the same probe is not used multiple times in a Statement definition.
 		if f.Outcome != finding.OutcomeNegative {
 			pfds = append(pfds, f)
 		} else {
@@ -177,7 +196,7 @@ func evaluateProbe(probeID string, findings []finding.Finding) (finding.Outcome,
 }
 
 func (p *Policy) validateRisks() error {
-	for _, c := range p.Checks {
+	for _, c := range p.Statements {
 		if err := validateRisk(c.Risk); err != nil {
 			return err
 		}

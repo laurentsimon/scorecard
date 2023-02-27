@@ -1,6 +1,6 @@
 version: 1
-checks:
-- name: Fuzzing
+statements:
+- name: fuzzed
   require:
     or:
     - probe: fuzzedWithOneFuzz
@@ -10,3 +10,4 @@ checks:
   positiveText: The project is fuzzed using one the fuzzers.
   negativeText: Configure one of the recognized fuzzers.
   risk: Low
+  labels: [Fuzzing]

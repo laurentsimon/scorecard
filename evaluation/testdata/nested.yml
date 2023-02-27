@@ -1,6 +1,6 @@
 version: 1
-checks:
-- name: NestedCheck
+statements:
+- name: NestedStatement
   require:
     and:
     - probe: Probe1
@@ -11,3 +11,4 @@ checks:
   positiveText: pass
   negativeText: fail
   risk: Critical
+  labels: [label1, label2]

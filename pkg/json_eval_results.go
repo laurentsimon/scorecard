@@ -19,23 +19,23 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ossf/scorecard/v4/checkeval"
 	sce "github.com/ossf/scorecard/v4/errors"
+	"github.com/ossf/scorecard/v4/evaluation"
 )
 
 // JSONScorecardEvalResult exports results as JSON for checks expressed thru a policy.
 //
 //nolint:govet
 type JSONScorecardEvalResult struct {
-	Date      string               `json:"date"`
-	Repo      jsonRepoV2           `json:"repo"`
-	Scorecard jsonScorecardV2      `json:"scorecard"`
-	Checks    checkeval.Evaluation `json:"checks"`
-	Metadata  []string             `json:"metadata"`
+	Date       string                `json:"date"`
+	Repo       jsonRepoV2            `json:"repo"`
+	Scorecard  jsonScorecardV2       `json:"scorecard"`
+	Statements evaluation.Evaluation `json:"statements"`
+	Metadata   []string              `json:"metadata"`
 }
 
 // TODO: finsinds should enventually be part of the scorecard structure.
-func (r *ScorecardResult) AsSJSON(eval *checkeval.Evaluation, writer io.Writer,
+func (r *ScorecardResult) AsSJSON(eval *evaluation.Evaluation, writer io.Writer,
 ) error {
 	encoder := json.NewEncoder(writer)
 	out := JSONScorecardEvalResult{
@@ -47,9 +47,9 @@ func (r *ScorecardResult) AsSJSON(eval *checkeval.Evaluation, writer io.Writer,
 			Version: r.Scorecard.Version,
 			Commit:  r.Scorecard.CommitSHA,
 		},
-		Date:     r.Date.Format("2006-01-02"),
-		Metadata: r.Metadata,
-		Checks:   *eval,
+		Date:       r.Date.Format("2006-01-02"),
+		Metadata:   r.Metadata,
+		Statements: *eval,
 	}
 
 	if err := encoder.Encode(out); err != nil {
