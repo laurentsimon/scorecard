@@ -23,9 +23,9 @@ import (
 	"github.com/olekukonko/tablewriter"
 
 	"github.com/ossf/scorecard/v4/checker"
-	"github.com/ossf/scorecard/v4/checkeval"
 	"github.com/ossf/scorecard/v4/docs/checks"
 	sce "github.com/ossf/scorecard/v4/errors"
+	"github.com/ossf/scorecard/v4/evaluation"
 	"github.com/ossf/scorecard/v4/finding"
 	"github.com/ossf/scorecard/v4/log"
 	"github.com/ossf/scorecard/v4/options"
@@ -130,8 +130,8 @@ func FormatResults(
 		var findings []finding.Finding
 		findings, err = rulerunner.Run(&results.RawResults)
 		if err == nil {
-			var eval *checkeval.Evaluation
-			eval, err = checkeval.Run(findings, opts.PolicyFile)
+			var eval *evaluation.Evaluation
+			eval, err = evaluation.Run(findings, opts.PolicyFile)
 			if err == nil {
 				err = results.AsSJSON(eval, os.Stdout)
 			}

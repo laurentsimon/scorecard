@@ -1,4 +1,4 @@
-package checkeval
+package evaluation
 
 import (
 	"fmt"
@@ -23,12 +23,13 @@ func Test_PolicyFromFile(t *testing.T) {
 			path: "testdata/nested.yml",
 			policy: Policy{
 				Version: 1,
-				Checks: []Check{
+				Statements: []Statement{
 					{
-						Name:         "NestedCheck",
+						Name:         "NestedStatement",
 						NegativeText: "fail",
 						PositiveText: "pass",
 						Risk:         RiskCritical,
+						Labels:       []string{"label1", "label2"},
 						Require: &Clause{
 							And: []*Clause{
 								{Probe: "Probe1"},
@@ -50,12 +51,13 @@ func Test_PolicyFromFile(t *testing.T) {
 			path: "testdata/policy.yml",
 			policy: Policy{
 				Version: 1,
-				Checks: []Check{
+				Statements: []Statement{
 					{
 						Name:         "Fuzzing",
 						NegativeText: "Configure one of the recognized fuzzers.",
 						PositiveText: "The project is fuzzed using one the fuzzers.",
 						Risk:         RiskLow,
+						Labels:       []string{"label1", "label2"},
 						Require: &Clause{
 							Or: []*Clause{
 								{Probe: "FuzzedWithCIFuzz"},
@@ -66,10 +68,11 @@ func Test_PolicyFromFile(t *testing.T) {
 						},
 					},
 					{
-						Name:         "BinaryArtifacts",
+						Name:         "BinaryOtherNotPresent",
 						NegativeText: "Remove binary artifacts.",
 						PositiveText: "No binaries present.",
 						Risk:         RiskHigh,
+						Labels:       []string{"BinaryArtifacts"},
 						Require: &Clause{
 							Probe: "BinaryOtherNotPresent",
 						},
@@ -79,6 +82,7 @@ func Test_PolicyFromFile(t *testing.T) {
 						NegativeText: "Remove the binary (BinaryGradleNotPresent) or install the Action (BinaryGradleWrapperAction).",
 						PositiveText: "Gradle binaries not present or handled safely.",
 						Risk:         RiskHigh,
+						Labels:       []string{"BinaryArtifacts"},
 						Require: &Clause{
 							And: []*Clause{
 								{Probe: "BinaryGradleNotPresent"},
@@ -91,6 +95,7 @@ func Test_PolicyFromFile(t *testing.T) {
 						NegativeText: "Remove the binary (BinaryMavenNotPresent) or install the Action (BinaryMavenWrapperAction).",
 						PositiveText: "Maven binaries not present or handled safely.",
 						Risk:         RiskHigh,
+						Labels:       []string{"BinaryArtifacts"},
 						Require: &Clause{
 							And: []*Clause{
 								{Probe: "BinaryMavenNotPresent"},
@@ -99,14 +104,15 @@ func Test_PolicyFromFile(t *testing.T) {
 						},
 					},
 					{
-						Name:         "BranchProtectionEnabled",
-						NegativeText: "Enable all the settings according to the steps definned in BranchProtectionNoForcePushDisabled and BranchProtectionStatusCheckEnabled.",
+						Name:         "BranchProtectionMinimal",
+						NegativeText: "Enable all the settings according to the steps definned in BranchProtectionNoForcePushDisabled and BranchProtectionStatusEnabled.",
 						PositiveText: "Branch protection settings all configured.",
 						Risk:         RiskHigh,
+						Labels:       []string{"BranchProtection"},
 						Require: &Clause{
 							And: []*Clause{
 								{Probe: "BranchProtectionNoForcePushDisabled"},
-								{Probe: "BranchProtectionStatusCheckEnabled"},
+								{Probe: "BranchProtectionStatusEnabled"},
 							},
 						},
 					},
