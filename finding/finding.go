@@ -112,7 +112,18 @@ func NewNegative(fs embed.FS, ruleID, text string, loc *Location,
 		return nil, fmt.Errorf("finding.NewWith: %w", err)
 	}
 
-	f = f.WithMessage(text).WithOutcome(OutcomeNegative).WithLocation(loc)
+	f = f.WithMessage(text).WithLocation(loc)
+	return f, nil
+}
+
+func NewPositive(fs embed.FS, ruleID, text string, loc *Location,
+) (*Finding, error) {
+	f, err := NewWith(fs, ruleID, text, loc, OutcomePositive)
+	if err != nil {
+		return nil, fmt.Errorf("finding.NewWith: %w", err)
+	}
+
+	f = f.WithMessage(text).WithLocation(loc)
 	return f, nil
 }
 

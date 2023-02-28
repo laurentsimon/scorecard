@@ -57,6 +57,7 @@ func BinaryArtifacts(c clients.RepoClient) (checker.BinaryArtifactData, error) {
 	if err != nil {
 		return checker.BinaryArtifactData{}, fmt.Errorf("%w", err)
 	}
+
 	// Ignore validated gradle-wrapper.jar files if present
 	files, err = excludeValidatedGradleWrappers(c, files)
 	if err != nil {

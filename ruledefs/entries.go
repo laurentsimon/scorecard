@@ -17,6 +17,9 @@ package ruledefs
 import (
 	"github.com/ossf/scorecard/v4/checker"
 	"github.com/ossf/scorecard/v4/finding"
+	"github.com/ossf/scorecard/v4/ruledefs/binaryGradleActionInstalled"
+	"github.com/ossf/scorecard/v4/ruledefs/binaryGradleNotPresent"
+	"github.com/ossf/scorecard/v4/ruledefs/binaryOtherNotPresent"
 	"github.com/ossf/scorecard/v4/ruledefs/fuzzedWithClusterFuzzLite"
 	"github.com/ossf/scorecard/v4/ruledefs/fuzzedWithGoNative"
 	"github.com/ossf/scorecard/v4/ruledefs/fuzzedWithOSSFuzz"
@@ -34,4 +37,8 @@ var EntriesToRun = []entryImpl{
 	fuzzedWithOneFuzz.Run,
 	fuzzedWithGoNative.Run,
 	fuzzedWithClusterFuzzLite.Run,
+	// Binaries.
+	binaryOtherNotPresent.Run,
+	binaryGradleNotPresent.Run,
+	binaryGradleActionInstalled.Run,
 }
