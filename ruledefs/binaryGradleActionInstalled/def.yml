@@ -1,0 +1,34 @@
+# Copyright 2023 OpenSSF Scorecard Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+id: binaryGradleActionInstalled
+short: Checks that the gradle wrapper Actioj is installed
+desc: Checks that the gradle wrapper Actioj is installed
+motivation: >
+  The gradle wrapper (see https://docs.gradle.org/current/userguide/gradle_wrapper.html) is required to build with gradle.
+  Even though the wrapper is a binary and binaries should be avoided (see BinaryGradleNotPresent rule), there is a list of "known" official binaries.
+  So a maintainer can commit the wrapper to their repository so long as they have a safe way to verify that the file
+  is one of the official binaries.
+implementation: >
+ The rule checks that the repository has configured the 'gradle/wrapper-validation-action' Action from https://github.com/gradle/wrapper-validation-action.
+outcome:
+  - If the 'gradle/wrapper-validation-action' is installed, the rule returns OutcomePositive (1).
+  - If the Action is not installed, the rule returns OutcomeNegative (0).
+risk: High
+remediation:
+  effort: Low
+  text:
+    - Install the 'gradle/wrapper-validation-action' Action by following the instructions in https://github.com/gradle/wrapper-validation-action.
+  markdown:
+    - Install the [gradle/wrapper-validation-action](https://github.com/gradle/wrapper-validation-action) on the repository.
