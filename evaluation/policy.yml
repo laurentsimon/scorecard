@@ -56,3 +56,16 @@ statements:
   risk: High
   labels: [Security-Policy]
   motivation: todo
+
+- name: dependencyUpdateTooling
+  require:
+    or: 
+    - probe: toolDependabotInstalled
+    - probe: toolRenovateInstalled
+    - probe: toolPyUpInstalled
+    - probe: toolSonarTypeLiftInstalled
+  positiveText: Tool to update dependencies is used.
+  negativeText: use a tool to updte your dependencies. Any of X.
+  risk: High
+  labels: [Dependency-Update-Tool]
+  motivation: todo

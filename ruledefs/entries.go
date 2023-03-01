@@ -30,6 +30,10 @@ import (
 	"github.com/ossf/scorecard/v4/ruledefs/securityPolicyContainsText"
 	"github.com/ossf/scorecard/v4/ruledefs/securityPolicyPresentInOrg"
 	"github.com/ossf/scorecard/v4/ruledefs/securityPolicyPresentInRepo"
+	"github.com/ossf/scorecard/v4/ruledefs/toolDependabotInstalled"
+	"github.com/ossf/scorecard/v4/ruledefs/toolPyUpInstalled"
+	"github.com/ossf/scorecard/v4/ruledefs/toolRenovateInstalled"
+	"github.com/ossf/scorecard/v4/ruledefs/toolSonarTypeLiftInstalled"
 )
 
 type entryImpl func(*checker.RawResults) ([]finding.Finding, error)
@@ -52,4 +56,9 @@ var EntriesToRun = []entryImpl{
 	securityPolicyContainsLinks.Run,
 	securityPolicyContainsDisclosure.Run,
 	securityPolicyContainsText.Run,
+	// Dependency update tools.
+	toolRenovateInstalled.Run,
+	toolDependabotInstalled.Run,
+	toolPyUpInstalled.Run,
+	toolSonarTypeLiftInstalled.Run,
 }
