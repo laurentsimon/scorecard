@@ -26,11 +26,12 @@ import (
 //go:embed *.yml
 var fs embed.FS
 
-func matches(p string) bool {
+func matches(file checker.File) bool {
 	// gradle-wrapper.jar is for the binaryGradleNotPresent rule.
-	return path.Base(p) != "gradle-wrapper.jar"
+	return path.Base(file.Path) != "gradle-wrapper.jar"
 }
 
 func Run(raw *checker.RawResults) ([]finding.Finding, error) {
-	return utils.BinaryRun(raw, fs, "binaryOtherNotPresent", matches)
+	return utils.FilesRun(raw.BinaryArtifactResults.Files, fs, "binaryOtherNotPresent", "binary file",
+		finding.OutcomeNegative, finding.OutcomePositive, matches)
 }
