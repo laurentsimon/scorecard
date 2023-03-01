@@ -54,14 +54,14 @@ type Outcome int
 const (
 	// OutcomeNegative indicates a negative outcome.
 	OutcomeNegative Outcome = iota
+	// OutcomeUnknown indicates an unknown outcome.
+	OutcomeUnknown
 	// OutcomePositive indicates a positive outcome.
 	OutcomePositive
 	// OutcomeNotApplicable indicates a non-applicable outcome.
-	OutcomeNotApplicable
+	// OutcomeNotApplicable
 	// OutcomeNotSupported indicates a non-supported outcome.
 	OutcomeNotSupported
-	// OutcomeUnknown indicates an unknown outcome.
-	OutcomeUnknown
 )
 
 // Finding represents a finding.

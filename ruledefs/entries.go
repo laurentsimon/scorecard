@@ -25,6 +25,11 @@ import (
 	"github.com/ossf/scorecard/v4/ruledefs/fuzzedWithOSSFuzz"
 	"github.com/ossf/scorecard/v4/ruledefs/fuzzedWithOneFuzz"
 	"github.com/ossf/scorecard/v4/ruledefs/gitHubWorkflowPermissionsTopNoWrite"
+	"github.com/ossf/scorecard/v4/ruledefs/securityPolicyContainsDisclosure"
+	"github.com/ossf/scorecard/v4/ruledefs/securityPolicyContainsLinks"
+	"github.com/ossf/scorecard/v4/ruledefs/securityPolicyContainsText"
+	"github.com/ossf/scorecard/v4/ruledefs/securityPolicyPresentInOrg"
+	"github.com/ossf/scorecard/v4/ruledefs/securityPolicyPresentInRepo"
 )
 
 type entryImpl func(*checker.RawResults) ([]finding.Finding, error)
@@ -41,4 +46,10 @@ var EntriesToRun = []entryImpl{
 	binaryOtherNotPresent.Run,
 	binaryGradleNotPresent.Run,
 	binaryGradleActionInstalled.Run,
+	// Security Policy.
+	securityPolicyPresentInRepo.Run,
+	securityPolicyPresentInOrg.Run,
+	securityPolicyContainsLinks.Run,
+	securityPolicyContainsDisclosure.Run,
+	securityPolicyContainsText.Run,
 }

@@ -33,3 +33,26 @@ statements:
   risk: Critical
   labels: [Binary-Artifacts]
   motivation: todo
+
+- name: securityPolicyDefined
+  require:
+    or:
+    - probe: securityPolicyPresentInRepo
+    - probe: securityPolicyPresentInOrg
+  positiveText: Security policy defined.
+  negativeText: Please define a security policy in the repo or in your org.
+  risk: High
+  labels: [Security-Policy]
+  motivation: todo
+
+- name: securityPolicyComplete
+  require:
+    and: 
+    - probe: securityPolicyContainsLinks
+    - probe: securityPolicyContainsDisclosure
+    - probe: securityPolicyContainsText
+  positiveText: Security policy has complete information.
+  negativeText: Please update your policy with more information. todo.
+  risk: High
+  labels: [Security-Policy]
+  motivation: todo

@@ -21,6 +21,8 @@ motivation: >
 implementation: >
   The rule is implemented by checking whether the `permissions` keyword is defined at the top of the workflow,
   and that no write permissions are given.
+outcome:
+  - todo.
 remediation:
   effort: Low
   text:

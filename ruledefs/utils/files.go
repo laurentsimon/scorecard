@@ -22,18 +22,17 @@ import (
 	"github.com/ossf/scorecard/v4/finding"
 )
 
-type PathMatch func(path string) bool
-
-func BinaryRun(raw *checker.RawResults, fs embed.FS, ruleID string, match PathMatch) ([]finding.Finding, error) {
+func FilesRun(files []checker.File, fs embed.FS, ruleID, filetype string,
+	foundOutcome, notFoundOutcome finding.Outcome, match func(file checker.File) bool,
+) ([]finding.Finding, error) {
 	var findings []finding.Finding
-	binaries := raw.BinaryArtifactResults.Files
-	for i := range binaries {
-		file := binaries[i]
-		if !match(file.Path) {
+	for i := range files {
+		file := files[i]
+		if !match(file) {
 			continue
 		}
-		f, err := finding.NewWith(fs, ruleID, "binary found",
-			file.Location(), finding.OutcomeNegative)
+		f, err := finding.NewWith(fs, ruleID, fmt.Sprintf("%s found", filetype),
+			file.Location(), foundOutcome)
 		if err != nil {
 			return nil, fmt.Errorf("create finding: %w", err)
 		}
@@ -41,9 +40,10 @@ func BinaryRun(raw *checker.RawResults, fs embed.FS, ruleID string, match PathMa
 
 	}
 
-	// No file found, positive result.
+	// No file found.
 	if len(findings) == 0 {
-		f, err := finding.NewPositive(fs, ruleID, "no binaries found", nil)
+		f, err := finding.NewWith(fs, ruleID, fmt.Sprintf("no %s found", filetype),
+			nil, notFoundOutcome)
 		if err != nil {
 			return nil, fmt.Errorf("create finding: %w", err)
 		}

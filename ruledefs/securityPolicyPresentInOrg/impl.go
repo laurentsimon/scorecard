@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package binaryGradleNotPresent
+package securityPolicyPresentInOrg
 
 import (
 	"embed"
-	"path"
 
 	"github.com/ossf/scorecard/v4/checker"
 	"github.com/ossf/scorecard/v4/finding"
@@ -27,10 +26,14 @@ import (
 var fs embed.FS
 
 func matches(file checker.File) bool {
-	return path.Base(file.Path) == "gradle-wrapper.jar"
+	return file.Type == finding.FileTypeURL
 }
 
 func Run(raw *checker.RawResults) ([]finding.Finding, error) {
-	return utils.FilesRun(raw.BinaryArtifactResults.Files, fs, "binaryGradleNotPresent", "binary file",
-		finding.OutcomeNegative, finding.OutcomePositive, matches)
+	var files []checker.File
+	for i := range raw.SecurityPolicyResults.PolicyFiles {
+		files = append(files, raw.SecurityPolicyResults.PolicyFiles[i].File)
+	}
+	return utils.FilesRun(files, fs, "securityPolicyPresentInOrg", "security policy file",
+		finding.OutcomePositive, finding.OutcomeNegative, matches)
 }

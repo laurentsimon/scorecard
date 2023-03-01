@@ -84,25 +84,14 @@ func Run(raw *checker.RawResults) ([]finding.Finding, error) {
 	}
 
 	if len(findings) == 0 {
-		// TODO: share this function
-		text := "no workflows found in the repository"
-		if err := reportFinding(&findings, fs, id,
-			text, finding.OutcomeNotApplicable); err != nil {
-			return nil, err
+		f, err := finding.NewNegative(fs, id, "no workflows found in the repository", nil)
+		if err != nil {
+			return nil, fmt.Errorf("create finding: %w", err)
 		}
+		findings = append(findings, *f)
 	}
 
 	return findings, nil
-}
-
-func reportFinding(findings *[]finding.Finding, fs embed.FS, ruleID, text string, o finding.Outcome) error {
-	f, err := finding.New(fs, ruleID)
-	if err != nil {
-		return fmt.Errorf("%w", err)
-	}
-	f = f.WithMessage(text).WithOutcome(o)
-	*findings = append(*findings, *f)
-	return nil
 }
 
 func withRemediation(f *finding.Finding,

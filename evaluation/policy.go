@@ -148,6 +148,8 @@ func evaluate(clause *Clause, findings []finding.Finding) (finding.Outcome, Logi
 			c := clause.Or[i]
 			co, _, cfs := evaluate(c, findings)
 			// NOTE: any better outcome than negative, including not applicable, unknown, etc.
+			// Only the negative and error should return an failure?
+			// Set the text appropriately. Have a default text for not supported, na and error.
 			if outcome.WorseThan(co) {
 				outcome = co
 			}
@@ -159,7 +161,22 @@ func evaluate(clause *Clause, findings []finding.Finding) (finding.Outcome, Logi
 		}
 	case clause.And != nil:
 		logic = LogicAnd
-		panic("and")
+		outcome = finding.OutcomePositive
+		for i := range clause.And {
+			c := clause.And[i]
+			co, _, cfs := evaluate(c, findings)
+			// TODO: support other outcome, e.g. NotApplicable.
+			// Only the negative and error should return an failure?
+			// NOTE: any better outcome than negative, including not applicable, unknown, etc.
+			if co.WorseThan(outcome) {
+				outcome = co
+			}
+			if co != finding.OutcomeNegative {
+				pfds = append(pfds, cfs...)
+			} else {
+				ofds = append(ofds, cfs...)
+			}
+		}
 	case clause.Not != nil:
 		panic("not")
 	}
