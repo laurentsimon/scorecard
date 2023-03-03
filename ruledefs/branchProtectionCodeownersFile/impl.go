@@ -31,7 +31,11 @@ func Run(raw *checker.RawResults) ([]finding.Finding, error) {
 	var findings []finding.Finding
 	for i := range raw.BranchProtectionResults.CodeownersFiles {
 		file := raw.BranchProtectionResults.CodeownersFiles[i]
-		if file.Path != "CODEOWNERS" {
+
+		// See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#codeowners-file-location.
+		// CODEOWNERS in the root, docs/, or .github/
+		if file.Path != "CODEOWNERS" && file.Path != "docs/CODEOWNERS" &&
+			file.Path != ".github/CODEOWNERS" {
 			continue
 		}
 		f, err := finding.NewPositive(fs, id, "CODEOWNERS file present", file.Location())
