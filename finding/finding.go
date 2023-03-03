@@ -52,20 +52,31 @@ type Location struct {
 type Outcome int
 
 const (
-	// TODO: increase the value difference to accomodate
-	// additional values in the future.
+	// NOTE: The additional '-' are intended for future use.
+	// This allows adding outcomes without breaking the values
+	// of existing outcomes.
 	// OutcomeNegative indicates a negative outcome.
 	OutcomeNegative Outcome = iota
+	_
+	_
+	_
 	// OutcomeNotAvailable indicates an unavailable outcome,
 	// typically because an API call did not return an answer.
 	OutcomeNotAvailable
+	_
+	_
+	_
 	// OutcomeError indicates an errors while running.
 	// The results could not be determined.
 	OutcomeError
+	_
+	_
+	_
 	// OutcomePositive indicates a positive outcome.
 	OutcomePositive
-	// OutcomeNotApplicable indicates a non-applicable outcome.
-	// OutcomeNotApplicable
+	_
+	_
+	_
 	// OutcomeNotSupported indicates a non-supported outcome.
 	OutcomeNotSupported
 )
