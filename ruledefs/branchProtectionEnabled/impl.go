@@ -12,16 +12,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package evaluation
+package branchProtectionEnabled
 
 import (
+	"embed"
 	"fmt"
 
 	"github.com/ossf/scorecard/v4/checker"
-	"github.com/ossf/scorecard/v4/clients"
-	sce "github.com/ossf/scorecard/v4/errors"
+	"github.com/ossf/scorecard/v4/finding"
+	"github.com/ossf/scorecard/v4/ruledefs/utils"
 )
 
+//go:embed *.yml
+var fs embed.FS
+
+func Run(raw *checker.RawResults) ([]finding.Finding, error) {
+	id := "branchProtectionEnabled"
+	var findings []finding.Finding
+	for i := range raw.BranchProtectionResults.Branches {
+		branch := raw.BranchProtectionResults.Branches[i]
+		f, _, err := utils.IsProtected(branch, fs, id)
+		if err != nil {
+			return nil, fmt.Errorf("create finding: %w", err)
+		}
+
+		findings = append(findings, *f)
+	}
+
+	if len(findings) == 0 {
+		// This should never happen.
+		f, err := finding.NewPositive(fs, id, "no branch on this repository", nil)
+		if err != nil {
+			return nil, fmt.Errorf("create finding: %w", err)
+		}
+		findings = append(findings, *f)
+	}
+	return findings, nil
+}
+
+/*
 const (
 	minReviews = 2
 	// Points incremented at each level.
@@ -450,7 +479,7 @@ func nonAdminThoroughReviewProtection(branch *clients.BranchRef, dl checker.Deta
 }
 
 func codeownerBranchProtection(
-	branch *clients.BranchRef, codeownersFiles []checker.File, dl checker.DetailLogger,
+	branch *clients.BranchRef, codeownersFiles []string, dl checker.DetailLogger,
 ) (int, int) {
 	score := 0
 	max := 1
@@ -473,3 +502,4 @@ func codeownerBranchProtection(
 
 	return score, max
 }
+*/

@@ -1,71 +1,99 @@
 version: 1
 statements:
-- name: fuzzed
-  require:
-    or:
-    - probe: fuzzedWithOneFuzz
-    - probe: fuzzedWithClusterFuzzLite
-    - probe: fuzzedWithGoNative
-    - probe: fuzzedWithOSSFuzz
-  positiveText: The project is fuzzed using one the fuzzers.
-  negativeText: Configure one of the recognized fuzzers.
-  risk: Low
-  labels: [Fuzzing]
-  motivation: |
-    Fuzzing, or fuzz testing, is the practice of feeding unexpected or random data into a program to expose bugs. Regular fuzzing is important to detect vulnerabilities that may be exploited by others, especially since attackers can also use fuzzing to find the same flaws.
+# - name: fuzzed
+#   require:
+#     or:
+#     - probe: fuzzedWithOneFuzz
+#     - probe: fuzzedWithClusterFuzzLite
+#     - probe: fuzzedWithGoNative
+#     - probe: fuzzedWithOSSFuzz
+#   positiveText: The project is fuzzed using one the fuzzers
+#   negativeText: Configure one of the recognized fuzzers
+#   risk: Low
+#   labels: [Fuzzing]
+#   motivation: |
+#     Fuzzing, or fuzz testing, is the practice of feeding unexpected or random data into a program to expose bugs. Regular fuzzing is important to detect vulnerabilities that may be exploited by others, especially since attackers can also use fuzzing to find the same flaws.
 
-- name: binaryGradleSafe
-  require:
-    or:
-    - probe: binaryGradleNotPresent
-    - probe: binaryGradleActionInstalled
-  positiveText: The project manages Gradle wrappers safely.
-  negativeText: Gradle wrappers not managed safely.
-  risk: Critical
-  labels: [Binary-Artifacts]
-  motivation: todo
+# - name: binaryGradleSafe
+#   require:
+#     or:
+#     - probe: binaryGradleNotPresent
+#     - probe: binaryGradleActionInstalled
+#   positiveText: The project manages Gradle wrappers safely
+#   negativeText: Gradle wrappers not managed safely
+#   risk: Critical
+#   labels: [Binary-Artifacts]
+#   motivation: todo
 
-- name: binaryOtherNone
-  require:
-    probe: binaryOtherNotPresent
-  positiveText: No other binaries found.
-  negativeText: Binaries found.
-  risk: Critical
-  labels: [Binary-Artifacts]
-  motivation: todo
+# - name: binaryOtherNone
+#   require:
+#     probe: binaryOtherNotPresent
+#   positiveText: No other binaries found.
+#   negativeText: Binaries found.
+#   risk: Critical
+#   labels: [Binary-Artifacts]
+#   motivation: todo
 
-- name: securityPolicyDefined
-  require:
-    or:
-    - probe: securityPolicyPresentInRepo
-    - probe: securityPolicyPresentInOrg
-  positiveText: Security policy defined.
-  negativeText: Please define a security policy in the repo or in your org.
-  risk: High
-  labels: [Security-Policy]
-  motivation: todo
+# - name: securityPolicyDefined
+#   require:
+#     or:
+#     - probe: securityPolicyPresentInRepo
+#     - probe: securityPolicyPresentInOrg
+#   positiveText: Security policy defined
+#   negativeText: Please define a security policy in the repo or in your org
+#   risk: High
+#   labels: [Security-Policy]
+#   motivation: todo
 
-- name: securityPolicyComplete
+# - name: securityPolicyComplete
+#   require:
+#     and: 
+#     - probe: securityPolicyContainsLinks
+#     - probe: securityPolicyContainsDisclosure
+#     - probe: securityPolicyContainsText
+#   positiveText: Security policy has complete information
+#   negativeText: Please update your policy with more information. todo
+#   risk: High
+#   labels: [Security-Policy]
+#   motivation: todo
+
+# - name: dependencyUpdateTooling
+#   require:
+#     or: 
+#     - probe: toolDependabotInstalled
+#     - probe: toolRenovateInstalled
+#     - probe: toolPyUpInstalled
+#     - probe: toolSonarTypeLiftInstalled
+#   positiveText: Tool to update dependencies is used
+#   negativeText: use a tool to updte your dependencies. Any of X
+#   risk: High
+#   labels: [Dependency-Update-Tool]
+#   motivation: todo
+
+- name: branchProtection
   require:
     and: 
-    - probe: securityPolicyContainsLinks
-    - probe: securityPolicyContainsDisclosure
-    - probe: securityPolicyContainsText
-  positiveText: Security policy has complete information.
-  negativeText: Please update your policy with more information. todo.
+    - probe: branchProtectionEnabled
+    - probe: branchProtectionDeletionDisabled
+    - probe: branchProtectionForcePushDisabled
+    - probe: branchProtectionCheckRulesContext
+    - probe: branchProtectionCodeownersFile
+    - probe: branchProtectionCodeownersEnabled
+    - probe: branchProtectionReviewers
+  positiveText: Minimal branch protection enabled
+  negativeText: Update your branch protection settings
   risk: High
-  labels: [Security-Policy]
+  labels: [Branch-Protection]
   motivation: todo
 
-- name: dependencyUpdateTooling
+- name: branchProtectionHardened
   require:
-    or: 
-    - probe: toolDependabotInstalled
-    - probe: toolRenovateInstalled
-    - probe: toolPyUpInstalled
-    - probe: toolSonarTypeLiftInstalled
-  positiveText: Tool to update dependencies is used.
-  negativeText: use a tool to updte your dependencies. Any of X.
+    and: 
+    - probe: branchProtectionDismissStaleReviewDisabled
+    - probe: branchProtectionLastPushApprovalEnabled
+    - probe: branchProtectionUpdateToMerge
+  positiveText: Enable settings to reduce insider attacks
+  negativeText: Update your branch protection settings
   risk: High
-  labels: [Dependency-Update-Tool]
+  labels: [Branch-Protection]
   motivation: todo

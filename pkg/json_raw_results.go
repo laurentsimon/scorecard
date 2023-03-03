@@ -729,7 +729,10 @@ func (r *jsonScorecardRawResult) addBranchProtectionRawResults(bp *checker.Branc
 	}
 	r.Results.BranchProtections.Branches = branches
 
-	r.Results.BranchProtections.CodeownersFiles = bp.CodeownersFiles
+	for i := range bp.CodeownersFiles {
+		f := bp.CodeownersFiles[i]
+		r.Results.BranchProtections.CodeownersFiles = append(r.Results.BranchProtections.CodeownersFiles, f.Path)
+	}
 
 	return nil
 }

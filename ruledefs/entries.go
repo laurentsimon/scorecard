@@ -20,6 +20,18 @@ import (
 	"github.com/ossf/scorecard/v4/ruledefs/binaryGradleActionInstalled"
 	"github.com/ossf/scorecard/v4/ruledefs/binaryGradleNotPresent"
 	"github.com/ossf/scorecard/v4/ruledefs/binaryOtherNotPresent"
+	"github.com/ossf/scorecard/v4/ruledefs/branchProtectionCheckRulesContext"
+	"github.com/ossf/scorecard/v4/ruledefs/branchProtectionCodeownersEnabled"
+	"github.com/ossf/scorecard/v4/ruledefs/branchProtectionCodeownersFile"
+	"github.com/ossf/scorecard/v4/ruledefs/branchProtectionDeletionDisabled"
+	"github.com/ossf/scorecard/v4/ruledefs/branchProtectionDismissStaleReviewDisabled"
+	"github.com/ossf/scorecard/v4/ruledefs/branchProtectionEnabled"
+	"github.com/ossf/scorecard/v4/ruledefs/branchProtectionLastPushApprovalEnabled"
+	"github.com/ossf/scorecard/v4/ruledefs/branchProtectionReviewers"
+	"github.com/ossf/scorecard/v4/ruledefs/branchProtectionUpdateToMerge"
+
+	"github.com/ossf/scorecard/v4/ruledefs/branchProtectionEnforceAdmins"
+	"github.com/ossf/scorecard/v4/ruledefs/branchProtectionForcePushDisabled"
 	"github.com/ossf/scorecard/v4/ruledefs/fuzzedWithClusterFuzzLite"
 	"github.com/ossf/scorecard/v4/ruledefs/fuzzedWithGoNative"
 	"github.com/ossf/scorecard/v4/ruledefs/fuzzedWithOSSFuzz"
@@ -61,4 +73,16 @@ var EntriesToRun = []entryImpl{
 	toolDependabotInstalled.Run,
 	toolPyUpInstalled.Run,
 	toolSonarTypeLiftInstalled.Run,
+	// branch protection.
+	branchProtectionEnabled.Run,
+	branchProtectionForcePushDisabled.Run,
+	branchProtectionDeletionDisabled.Run,
+	branchProtectionEnforceAdmins.Run,
+	branchProtectionCheckRulesContext.Run,
+	branchProtectionUpdateToMerge.Run,
+	branchProtectionDismissStaleReviewDisabled.Run,
+	branchProtectionReviewers.Run,
+	branchProtectionLastPushApprovalEnabled.Run,
+	branchProtectionCodeownersEnabled.Run,
+	branchProtectionCodeownersFile.Run,
 }

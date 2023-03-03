@@ -121,10 +121,10 @@ func (p *Policy) Evaluate(findings []finding.Finding) (*Evaluation, error) {
 			Labels:   statement.Labels,
 			Logic:    logic,
 		}
-		if o != finding.OutcomeNegative {
-			e.Text = statement.PositiveText
-		} else {
+		if o < finding.OutcomePositive {
 			e.Text = statement.NegativeText
+		} else {
+			e.Text = statement.PositiveText
 		}
 		results = append(results, e)
 	}
@@ -150,13 +150,13 @@ func evaluate(clause *Clause, findings []finding.Finding) (finding.Outcome, Logi
 			// NOTE: any better outcome than negative, including not applicable, unknown, etc.
 			// Only the negative and error should return an failure?
 			// Set the text appropriately. Have a default text for not supported, na and error.
-			if outcome.WorseThan(co) {
+			if outcome < co {
 				outcome = co
 			}
-			if co != finding.OutcomeNegative {
-				pfds = append(pfds, cfs...)
-			} else {
+			if co < finding.OutcomePositive {
 				ofds = append(ofds, cfs...)
+			} else {
+				pfds = append(pfds, cfs...)
 			}
 		}
 	case clause.And != nil:
@@ -168,22 +168,22 @@ func evaluate(clause *Clause, findings []finding.Finding) (finding.Outcome, Logi
 			// TODO: support other outcome, e.g. NotApplicable.
 			// Only the negative and error should return an failure?
 			// NOTE: any better outcome than negative, including not applicable, unknown, etc.
-			if co.WorseThan(outcome) {
+			if co < outcome {
 				outcome = co
 			}
-			if co != finding.OutcomeNegative {
-				pfds = append(pfds, cfs...)
-			} else {
+			if co < finding.OutcomePositive {
 				ofds = append(ofds, cfs...)
+			} else {
+				pfds = append(pfds, cfs...)
 			}
 		}
 	case clause.Not != nil:
 		panic("not")
 	}
-	if outcome != finding.OutcomeNegative {
-		return outcome, logic, pfds
+	if outcome < finding.OutcomePositive {
+		return outcome, logic, append(pfds, ofds...)
 	}
-	return outcome, logic, ofds
+	return outcome, logic, pfds
 }
 
 func evaluateProbe(probeID string, findings []finding.Finding) (finding.Outcome, []finding.Finding) {
@@ -195,21 +195,21 @@ func evaluateProbe(probeID string, findings []finding.Finding) (finding.Outcome,
 		if f.Rule != probeID {
 			continue
 		}
-		if f.Outcome.WorseThan(o) {
+		if f.Outcome < o {
 			o = f.Outcome
 		}
 		// We assume there are not duplicate entries, i.e., that
 		// the same probe is not used multiple times in a Statement definition.
-		if f.Outcome != finding.OutcomeNegative {
-			pfds = append(pfds, f)
-		} else {
+		if f.Outcome < finding.OutcomePositive {
 			ofds = append(ofds, f)
+		} else {
+			pfds = append(pfds, f)
 		}
 	}
-	if o != finding.OutcomeNegative {
-		return o, pfds
+	if o < finding.OutcomePositive {
+		return o, append(pfds, ofds...)
 	}
-	return o, ofds
+	return o, pfds
 }
 
 func (p *Policy) validateRisks() error {

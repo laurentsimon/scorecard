@@ -38,6 +38,7 @@ func init() {
 
 // WebHooks run Webhooks check.
 func WebHooks(c *checker.CheckRequest) checker.CheckResult {
+	return checker.CheckResult{}
 	// TODO: remove this check when v6 is released
 	_, enabled := os.LookupEnv("SCORECARD_EXPERIMENTAL")
 	if !enabled {
