@@ -112,10 +112,18 @@ func BranchProtection(c clients.RepoClient) (checker.BranchProtectionsData, erro
 		return checker.BranchProtectionsData{}, err
 	}
 
+	var files []checker.File
+	for i := range codeownersFiles {
+		fn := codeownersFiles[i]
+		files = append(files, checker.File{
+			Path: fn,
+		})
+	}
+
 	// No error, return the data.
 	return checker.BranchProtectionsData{
 		Branches:        branches.set,
-		CodeownersFiles: codeownersFiles,
+		CodeownersFiles: files,
 	}, nil
 }
 

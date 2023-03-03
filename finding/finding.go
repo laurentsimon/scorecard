@@ -52,10 +52,16 @@ type Location struct {
 type Outcome int
 
 const (
+	// TODO: increase the value difference to accomodate
+	// additional values in the future.
 	// OutcomeNegative indicates a negative outcome.
 	OutcomeNegative Outcome = iota
-	// OutcomeUnknown indicates an unknown outcome.
-	OutcomeUnknown
+	// OutcomeNotAvailable indicates an unavailable outcome,
+	// typically because an API call did not return an answer.
+	OutcomeNotAvailable
+	// OutcomeError indicates an errors while running.
+	// The results could not be determined.
+	OutcomeError
 	// OutcomePositive indicates a positive outcome.
 	OutcomePositive
 	// OutcomeNotApplicable indicates a non-applicable outcome.
@@ -108,6 +114,17 @@ func NewWith(fs embed.FS, ruleID, text string, loc *Location,
 func NewNegative(fs embed.FS, ruleID, text string, loc *Location,
 ) (*Finding, error) {
 	f, err := NewWith(fs, ruleID, text, loc, OutcomeNegative)
+	if err != nil {
+		return nil, fmt.Errorf("finding.NewWith: %w", err)
+	}
+
+	f = f.WithMessage(text).WithLocation(loc)
+	return f, nil
+}
+
+func NewNotAvailable(fs embed.FS, ruleID, text string, loc *Location,
+) (*Finding, error) {
+	f, err := NewWith(fs, ruleID, text, loc, OutcomeNotAvailable)
 	if err != nil {
 		return nil, fmt.Errorf("finding.NewWith: %w", err)
 	}
@@ -174,9 +191,4 @@ func (f *Finding) WithRemediationMetadata(values map[string]string) *Finding {
 		}
 	}
 	return f
-}
-
-// WorseThan compares outcomes.
-func (o *Outcome) WorseThan(oo Outcome) bool {
-	return *o < oo
 }

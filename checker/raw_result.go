@@ -256,7 +256,7 @@ type WebhooksData struct {
 // for the Branch-Protection check.
 type BranchProtectionsData struct {
 	Branches        []clients.BranchRef
-	CodeownersFiles []string
+	CodeownersFiles []File
 }
 
 // Tool represents a tool.
