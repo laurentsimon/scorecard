@@ -37,14 +37,14 @@ func IsProtected(branch clients.BranchRef, fs embed.FS, ruleID string) (*finding
 
 	if !*branch.Protected {
 		f, err := finding.NewNegative(fs, ruleID,
-			fmt.Sprintf("branch '%s' has protection enabled", *branch.Name), nil)
+			fmt.Sprintf("branch '%s' has no protection", *branch.Name), nil)
 		if err != nil {
 			return nil, false, fmt.Errorf("create finding: %w", err)
 		}
 		return f, false, nil
 	}
 	f, err := finding.NewPositive(fs, ruleID,
-		fmt.Sprintf("branch '%s' does have protection enabled", *branch.Name), nil)
+		fmt.Sprintf("branch '%s' has protection enabled", *branch.Name), nil)
 	if err != nil {
 		return nil, false, fmt.Errorf("create finding: %w", err)
 	}

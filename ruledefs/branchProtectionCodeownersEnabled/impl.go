@@ -39,14 +39,14 @@ func handleSetting(branch clients.BranchRef) (*finding.Finding, error) {
 		return f, nil
 	}
 	if *branch.BranchProtectionRule.RequiredPullRequestReviews.RequireCodeOwnerReviews {
-		f, err := finding.NewNegative(fs, id,
+		f, err := finding.NewPositive(fs, id,
 			fmt.Sprintf("setting enabled on branch '%s'd", *branch.Name), nil)
 		if err != nil {
 			return nil, fmt.Errorf("create finding: %w", err)
 		}
 		return f, nil
 	}
-	f, err := finding.NewPositive(fs, id,
+	f, err := finding.NewNegative(fs, id,
 		fmt.Sprintf("setting disabled on branch '%s'", *branch.Name), nil)
 	if err != nil {
 		return nil, fmt.Errorf("create finding: %w", err)
