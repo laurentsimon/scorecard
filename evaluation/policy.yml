@@ -91,7 +91,7 @@ statements:
     and: 
     - probe: branchProtectionDismissStaleReviewDisabled
     - probe: branchProtectionLastPushApprovalEnabled
-    - probe: branchProtectionUpdateToMerge
+      #- probe: branchProtectionUpdateToMerge
   positiveText: Enable settings to reduce insider attacks
   negativeText: Update your branch protection settings
   risk: High
