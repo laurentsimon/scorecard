@@ -13,8 +13,8 @@
 # limitations under the License.
 
 id: binaryGradleActionInstalled
-short: Checks that the gradle wrapper Actioj is installed
-desc: Checks that the gradle wrapper Actioj is installed
+short: Checks that the gradle wrapper Action is installed
+desc: Checks that the gradle wrapper Action is installed
 motivation: >
   The gradle wrapper (see https://docs.gradle.org/current/userguide/gradle_wrapper.html) is required to build with gradle.
   Even though the wrapper is a binary and binaries should be avoided (see BinaryGradleNotPresent rule), there is a list of "known" official binaries.
