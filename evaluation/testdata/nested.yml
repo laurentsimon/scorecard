@@ -11,4 +11,5 @@ statements:
   positiveText: pass
   negativeText: fail
   risk: Critical
+  confidence: [Negative, Positive]
   labels: [label1, label2]

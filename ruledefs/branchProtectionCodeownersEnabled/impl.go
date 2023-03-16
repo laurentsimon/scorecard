@@ -40,7 +40,7 @@ func handleSetting(branch clients.BranchRef) (*finding.Finding, error) {
 	}
 	if *branch.BranchProtectionRule.RequiredPullRequestReviews.RequireCodeOwnerReviews {
 		f, err := finding.NewPositive(fs, id,
-			fmt.Sprintf("setting enabled on branch '%s'd", *branch.Name), nil)
+			fmt.Sprintf("setting enabled on branch '%s'", *branch.Name), nil)
 		if err != nil {
 			return nil, fmt.Errorf("create finding: %w", err)
 		}

@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/ossf/scorecard/v4/rule"
+	"gopkg.in/yaml.v3"
 )
 
 // FileType is the type of a file.
@@ -202,4 +203,29 @@ func (f *Finding) WithRemediationMetadata(values map[string]string) *Finding {
 		}
 	}
 	return f
+}
+
+// UnmarshalYAML is a custom unmarshalling function
+// to transform the string into an enum.
+func (o *Outcome) UnmarshalYAML(n *yaml.Node) error {
+	var str string
+	if err := n.Decode(&str); err != nil {
+		return fmt.Errorf("decode: %w", err)
+	}
+
+	switch n.Value {
+	case "Negative":
+		*o = OutcomeNegative
+	case "Positive":
+		*o = OutcomePositive
+	case "NotAvailable":
+		*o = OutcomeNotAvailable
+	case "NotSupported":
+		*o = OutcomeNotSupported
+	case "Error":
+		*o = OutcomeError
+	default:
+		return fmt.Errorf("invalid outcome: %q", str)
+	}
+	return nil
 }

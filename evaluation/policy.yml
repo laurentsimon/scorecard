@@ -83,6 +83,7 @@ statements:
   positiveText: Minimal branch protection enabled
   negativeText: Update your branch protection settings
   risk: High
+  confidence: [Negative, Positive]
   labels: [Branch-Protection]
   motivation: todo
 
@@ -95,5 +96,6 @@ statements:
   positiveText: Enable settings to reduce insider attacks
   negativeText: Update your branch protection settings
   risk: High
+  confidence: [Negative, Positive]
   labels: [Branch-Protection]
   motivation: todo

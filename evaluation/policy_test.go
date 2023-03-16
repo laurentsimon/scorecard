@@ -7,6 +7,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+
+	"github.com/ossf/scorecard/v4/finding"
 )
 
 func Test_PolicyFromFile(t *testing.T) {
@@ -30,6 +32,9 @@ func Test_PolicyFromFile(t *testing.T) {
 						PositiveText: "pass",
 						Risk:         RiskCritical,
 						Labels:       []string{"label1", "label2"},
+						Confidence: []finding.Outcome{
+							finding.OutcomeNegative, finding.OutcomePositive,
+						},
 						Require: &Clause{
 							And: []*Clause{
 								{Probe: "Probe1"},
@@ -57,7 +62,10 @@ func Test_PolicyFromFile(t *testing.T) {
 						NegativeText: "Configure one of the recognized fuzzers.",
 						PositiveText: "The project is fuzzed using one the fuzzers.",
 						Risk:         RiskLow,
-						Labels:       []string{"label1", "label2"},
+						Confidence: []finding.Outcome{
+							finding.OutcomePositive,
+						},
+						Labels: []string{"label1", "label2"},
 						Require: &Clause{
 							Or: []*Clause{
 								{Probe: "FuzzedWithCIFuzz"},
@@ -72,7 +80,10 @@ func Test_PolicyFromFile(t *testing.T) {
 						NegativeText: "Remove binary artifacts.",
 						PositiveText: "No binaries present.",
 						Risk:         RiskHigh,
-						Labels:       []string{"BinaryArtifacts"},
+						Confidence: []finding.Outcome{
+							finding.OutcomeNegative,
+						},
+						Labels: []string{"BinaryArtifacts"},
 						Require: &Clause{
 							Probe: "BinaryOtherNotPresent",
 						},
@@ -82,7 +93,10 @@ func Test_PolicyFromFile(t *testing.T) {
 						NegativeText: "Remove the binary (BinaryGradleNotPresent) or install the Action (BinaryGradleWrapperAction).",
 						PositiveText: "Gradle binaries not present or handled safely.",
 						Risk:         RiskHigh,
-						Labels:       []string{"BinaryArtifacts"},
+						Confidence: []finding.Outcome{
+							finding.OutcomeNegative, finding.OutcomePositive,
+						},
+						Labels: []string{"BinaryArtifacts"},
 						Require: &Clause{
 							And: []*Clause{
 								{Probe: "BinaryGradleNotPresent"},
@@ -95,7 +109,10 @@ func Test_PolicyFromFile(t *testing.T) {
 						NegativeText: "Remove the binary (BinaryMavenNotPresent) or install the Action (BinaryMavenWrapperAction).",
 						PositiveText: "Maven binaries not present or handled safely.",
 						Risk:         RiskHigh,
-						Labels:       []string{"BinaryArtifacts"},
+						Confidence: []finding.Outcome{
+							finding.OutcomePositive,
+						},
+						Labels: []string{"BinaryArtifacts"},
 						Require: &Clause{
 							And: []*Clause{
 								{Probe: "BinaryMavenNotPresent"},
@@ -108,7 +125,10 @@ func Test_PolicyFromFile(t *testing.T) {
 						NegativeText: "Enable all the settings according to the steps definned in BranchProtectionNoForcePushDisabled and BranchProtectionStatusEnabled.",
 						PositiveText: "Branch protection settings all configured.",
 						Risk:         RiskHigh,
-						Labels:       []string{"BranchProtection"},
+						Confidence: []finding.Outcome{
+							finding.OutcomeNegative,
+						},
+						Labels: []string{"BranchProtection"},
 						Require: &Clause{
 							And: []*Clause{
 								{Probe: "BranchProtectionNoForcePushDisabled"},

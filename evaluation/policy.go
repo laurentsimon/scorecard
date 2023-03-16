@@ -16,8 +16,10 @@ package evaluation
 import (
 	"fmt"
 
-	"github.com/ossf/scorecard/v4/finding"
+	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
+
+	"github.com/ossf/scorecard/v4/finding"
 )
 
 // Policy specifies a set of tests.
@@ -52,28 +54,43 @@ const (
 	LogicOr
 )
 
+type Confidence int
+
+const (
+	// ConfidenceNone is no confidence.
+	ConfidenceNone Confidence = iota
+	// ConfidenceLow is a low confidence.
+	ConfidenceLow
+	// ConfidenceMedium is a medium confidence.
+	ConfidenceMedium
+	// ConfidenceHigh is a high confidence.
+	ConfidenceHigh
+)
+
 type Evaluation []EvaluatedStatement
 
 // Result is the result of a statement.
 type EvaluatedStatement struct {
-	Name     string            `json:"name"`
-	Outcome  finding.Outcome   `json:"outcome"`
-	Risk     Risk              `json:"risk"`
-	Text     string            `json:"text"`
-	Labels   []string          `json:"labels"`
-	Logic    Logic             `json:"logic"`
-	Findings []finding.Finding `json:"findings"`
+	Name       string            `json:"name"`
+	Outcome    finding.Outcome   `json:"outcome"`
+	Risk       Risk              `json:"risk"`
+	Text       string            `json:"text"`
+	Labels     []string          `json:"labels"`
+	Logic      Logic             `json:"logic"`
+	Confidence Confidence        `json:"confidence"`
+	Findings   []finding.Finding `json:"findings"`
 }
 
 // Test specifies a policy for evaluating a set of results and the remediation
 // advice should the results fail the requirements.
 type Statement struct {
-	Name         string   `yaml:"name"`
-	Require      *Clause  `yaml:"require"`
-	NegativeText string   `yaml:"negativeText"`
-	PositiveText string   `yaml:"positiveText"`
-	Risk         Risk     `yaml:"risk"`
-	Labels       []string `yaml:"labels"`
+	Name         string            `yaml:"name"`
+	Require      *Clause           `yaml:"require"`
+	NegativeText string            `yaml:"negativeText"`
+	PositiveText string            `yaml:"positiveText"`
+	Risk         Risk              `yaml:"risk"`
+	Confidence   []finding.Outcome `yaml:"confidence"`
+	Labels       []string          `yaml:"labels"`
 }
 type Clause struct {
 	// Exactly one of these fields must be populated.
@@ -100,6 +117,11 @@ func PolicyFromBytes(content []byte) (*Policy, error) {
 	if err := p.validateRisks(); err != nil {
 		return nil, fmt.Errorf("validate risks: %w", err)
 	}
+
+	if err := p.validateConfidence(); err != nil {
+		return nil, fmt.Errorf("validate confidence: %w", err)
+	}
+
 	return &p, nil
 }
 
@@ -126,9 +148,29 @@ func (p *Policy) Evaluate(findings []finding.Finding) (*Evaluation, error) {
 		} else {
 			e.Text = statement.PositiveText
 		}
+		if err := e.updateConfidence(statement.Confidence); err != nil {
+			return nil, err
+		}
 		results = append(results, e)
 	}
 	return &results, nil
+}
+
+func (es *EvaluatedStatement) updateConfidence(os []finding.Outcome) error {
+	switch es.Outcome {
+	case finding.OutcomeError, finding.OutcomeNotAvailable,
+		finding.OutcomeNotSupported:
+		es.Confidence = ConfidenceHigh
+	case finding.OutcomePositive, finding.OutcomeNegative:
+		es.Confidence = ConfidenceLow
+		if slices.Contains(os, es.Outcome) {
+			es.Confidence = ConfidenceHigh
+		}
+
+	default:
+		return fmt.Errorf("invalid confidence: %s")
+	}
+	return nil
 }
 
 func evaluate(clause *Clause, findings []finding.Finding) (finding.Outcome, Logic, []finding.Finding) {
@@ -221,6 +263,15 @@ func (p *Policy) validateRisks() error {
 	return nil
 }
 
+func (p *Policy) validateConfidence() error {
+	for _, c := range p.Statements {
+		if len(c.Confidence) == 0 {
+			return fmt.Errorf("confidence field not set")
+		}
+	}
+	return nil
+}
+
 // UnmarshalYAML unmarshals the given Node into the Clause, ensuring that only
 // one of its fields are set.
 func (c *Clause) UnmarshalYAML(n *yaml.Node) error {
@@ -304,9 +355,4 @@ func (r *Risk) String() string {
 	default:
 		return ""
 	}
-}
-
-// GreaterThan compare risks.
-func (r *Risk) GreaterThan(rr Risk) bool {
-	return *r > rr
 }
