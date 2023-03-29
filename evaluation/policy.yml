@@ -45,30 +45,31 @@ statements:
 #   labels: [Security-Policy]
 #   motivation: todo
 
-# - name: securityPolicyComplete
-#   require:
-#     and: 
-#     - probe: securityPolicyContainsLinks
-#     - probe: securityPolicyContainsDisclosure
-#     - probe: securityPolicyContainsText
-#   positiveText: Security policy has complete information
-#   negativeText: Please update your policy with more information. todo
-#   risk: High
-#   labels: [Security-Policy]
-#   motivation: todo
+  #- name: securityPolicyComplete
+  #require:
+  #  and: 
+  #  - probe: securityPolicyContainsLinks
+  #  - probe: securityPolicyContainsDisclosure
+  #  - probe: securityPolicyContainsText
+  #positiveText: Security policy has complete information
+  #negativeText: Please update your policy with more information. todo
+  #risk: High
+  #labels: [Security-Policy]
+  #motivation: todo
 
-# - name: dependencyUpdateTooling
-#   require:
-#     or: 
-#     - probe: toolDependabotInstalled
-#     - probe: toolRenovateInstalled
-#     - probe: toolPyUpInstalled
-#     - probe: toolSonarTypeLiftInstalled
-#   positiveText: Tool to update dependencies is used
-#   negativeText: use a tool to updte your dependencies. Any of X
-#   risk: High
-#   labels: [Dependency-Update-Tool]
-#   motivation: todo
+- name: dependencyUpdateTooling
+  require:
+    or: 
+    - probe: toolDependabotInstalled
+    - probe: toolRenovateInstalled
+    - probe: toolPyUpInstalled
+    - probe: toolSonarTypeLiftInstalled
+  positiveText: Tool to update dependencies is used
+  negativeText: use a tool to updte your dependencies. Any of X
+  risk: High
+  confidence: [Positive]
+  labels: [Dependency-Update-Tool]
+  motivation: todo
 
 - name: branchProtection
   require:
