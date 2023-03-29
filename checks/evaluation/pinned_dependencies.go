@@ -22,8 +22,8 @@ import (
 	"github.com/ossf/scorecard/v4/checks/fileparser"
 	sce "github.com/ossf/scorecard/v4/errors"
 	"github.com/ossf/scorecard/v4/finding"
+	"github.com/ossf/scorecard/v4/finding/probe"
 	"github.com/ossf/scorecard/v4/remediation"
-	"github.com/ossf/scorecard/v4/rule"
 )
 
 var errInvalidValue = errors.New("invalid value")
@@ -138,7 +138,7 @@ func PinningDependencies(name string, c *checker.CheckRequest,
 		"dependency not pinned by hash detected", score, checker.MaxResultScore)
 }
 
-func generateRemediation(remediationMd *remediation.RemediationMetadata, rr *checker.Dependency) *rule.Remediation {
+func generateRemediation(remediationMd *remediation.RemediationMetadata, rr *checker.Dependency) *probe.Remediation {
 	switch rr.Type {
 	case checker.DependencyUseTypeGHAction:
 		return remediationMd.CreateWorkflowPinningRemediation(rr.Location.Path)

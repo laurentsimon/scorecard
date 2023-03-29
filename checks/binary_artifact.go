@@ -19,12 +19,15 @@ import (
 	"github.com/ossf/scorecard/v4/checks/evaluation"
 	"github.com/ossf/scorecard/v4/checks/raw"
 	sce "github.com/ossf/scorecard/v4/errors"
+	pevaluation "github.com/ossf/scorecard/v4/evaluation"
+	"github.com/ossf/scorecard/v4/probes"
+	prunner "github.com/ossf/scorecard/v4/probes/zrunner"
 )
 
 // CheckBinaryArtifacts is the exported name for Binary-Artifacts check.
 const CheckBinaryArtifacts string = "Binary-Artifacts"
 
-//nolint
+// nolint
 func init() {
 	supportedRequestTypes := []checker.RequestType{
 		checker.CommitBased,
@@ -48,6 +51,25 @@ func BinaryArtifacts(c *checker.CheckRequest) checker.CheckResult {
 		c.RawResults.BinaryArtifactResults = rawData
 	}
 
+	// Evaluate the check
+	findings, err := prunner.Run(c.RawResults, probes.BinaryArtifacts)
+	if err != nil {
+		e := sce.WithMessage(sce.ErrScorecardInternal, err.Error())
+		return checker.CreateRuntimeErrorResult(CheckBinaryArtifacts, e)
+	}
+	// var eval *evaluation.Evaluation
+	eval, err := pevaluation.Run(findings, "probes/policy.yml")
+	if err != nil {
+		e := sce.WithMessage(sce.ErrScorecardInternal, err.Error())
+		return checker.CreateRuntimeErrorResult(CheckBinaryArtifacts, e)
+	}
+
+	// Log the findings.
+	if err := checker.LogFindings(findings, c.Dlogger); err != nil {
+		e := sce.WithMessage(sce.ErrScorecardInternal, err.Error())
+		return checker.CreateRuntimeErrorResult(CheckBinaryArtifacts, e)
+	}
+
 	// Return the score evaluation.
-	return evaluation.BinaryArtifacts(CheckBinaryArtifacts, c.Dlogger, &rawData)
+	return evaluation.BinaryArtifacts(CheckBinaryArtifacts, c.Dlogger, findings)
 }

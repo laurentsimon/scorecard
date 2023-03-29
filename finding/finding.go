@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ossf/scorecard/v4/rule"
+	"github.com/ossf/scorecard/v4/finding/probe"
 	"gopkg.in/yaml.v3"
 )
 
@@ -87,15 +87,15 @@ const (
 type Finding struct {
 	Rule    string  `json:"rule"`
 	Outcome Outcome `json:"outcome"`
-	// Risk        rule.Risk         `json:"risk"`
-	Message     string            `json:"message"`
-	Location    *Location         `json:"location,omitempty"`
-	Remediation *rule.Remediation `json:"remediation,omitempty"`
+	// Risk        probe.Risk         `json:"risk"`
+	Message     string             `json:"message"`
+	Location    *Location          `json:"location,omitempty"`
+	Remediation *probe.Remediation `json:"remediation,omitempty"`
 }
 
 // New creates a new finding.
 func New(loc embed.FS, ruleID string) (*Finding, error) {
-	r, err := rule.New(loc, ruleID)
+	r, err := probe.New(loc, ruleID)
 	if err != nil {
 		// nolint
 		return nil, err

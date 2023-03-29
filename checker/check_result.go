@@ -20,7 +20,7 @@ import (
 	"math"
 
 	"github.com/ossf/scorecard/v4/finding"
-	"github.com/ossf/scorecard/v4/rule"
+	"github.com/ossf/scorecard/v4/finding/probe"
 )
 
 type (
@@ -79,13 +79,13 @@ type LogMessage struct {
 	Finding *finding.Finding
 
 	// Non-structured results.
-	Text        string            // A short string explaining why the detail was recorded/logged.
-	Path        string            // Fullpath to the file.
-	Type        finding.FileType  // Type of file.
-	Offset      uint              // Offset in the file of Path (line for source/text files).
-	EndOffset   uint              // End of offset in the file, e.g. if the command spans multiple lines.
-	Snippet     string            // Snippet of code
-	Remediation *rule.Remediation // Remediation information, if any.
+	Text        string             // A short string explaining why the detail was recorded/logged.
+	Path        string             // Fullpath to the file.
+	Type        finding.FileType   // Type of file.
+	Offset      uint               // Offset in the file of Path (line for source/text files).
+	EndOffset   uint               // End of offset in the file, e.g. if the command spans multiple lines.
+	Snippet     string             // Snippet of code
+	Remediation *probe.Remediation // Remediation information, if any.
 }
 
 // CreateProportionalScore creates a proportional score.
@@ -192,4 +192,27 @@ func CreateRuntimeErrorResult(name string, e error) CheckResult {
 		Score:   InconclusiveResultScore,
 		Reason:  e.Error(), // Note: message already accessible by caller thru `Error`.
 	}
+}
+
+func LogFindings(findings []finding.Finding, dl DetailLogger,
+) error {
+	for i := range findings {
+		f := findings[i]
+		switch f.Outcome {
+		case finding.OutcomeNegative:
+			dl.Warn(&LogMessage{
+				Finding: &f,
+			})
+		case finding.OutcomePositive:
+			dl.Info(&LogMessage{
+				Finding: &f,
+			})
+		default:
+			dl.Debug(&LogMessage{
+				Finding: &f,
+			})
+		}
+	}
+
+	return nil
 }
