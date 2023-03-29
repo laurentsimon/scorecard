@@ -132,7 +132,7 @@ func FormatResults(
 		findings, err = prunner.Run(&results.RawResults, probes.AllProbes)
 		if err == nil {
 			var eval *evaluation.Evaluation
-			eval, err = evaluation.Run(findings, opts.PolicyFile)
+			eval, err = evaluation.Run(findings, opts.PolicyFile, nil)
 			if err == nil {
 				err = results.AsSJSON(eval, os.Stdout)
 			}

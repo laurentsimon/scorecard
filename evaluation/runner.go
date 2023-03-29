@@ -25,7 +25,11 @@ import (
 //go:embed policy.yml
 var policyFs embed.FS
 
-func Run(findings []finding.Finding, policyFile string) (*Evaluation, error) {
+// Run runs the check evaluation.
+// checkName is an optional parameter used to generate results for only a particular check,
+// and it's only used by the legacy code to evaluate a subset of statements.
+// We can remove support for it when we drop support for legacy score computation.
+func Run(findings []finding.Finding, policyFile string, checkName *string) (*Evaluation, error) {
 	var content []byte
 	var err error
 	if policyFile != "" {
@@ -41,5 +45,5 @@ func Run(findings []finding.Finding, policyFile string) (*Evaluation, error) {
 		return nil, fmt.Errorf("create policy: %w", err)
 	}
 
-	return p.Evaluate(findings)
+	return p.Evaluate(findings, checkName)
 }

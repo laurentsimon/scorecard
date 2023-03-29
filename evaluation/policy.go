@@ -126,10 +126,16 @@ func PolicyFromBytes(content []byte) (*Policy, error) {
 }
 
 // Evaluate evaluates the given results with respect to the given policy.
-func (p *Policy) Evaluate(findings []finding.Finding) (*Evaluation, error) {
+// checkName is an optional parameter used to generate results for only a particular check,
+// and it's only used by the legacy code to evaluate a subset of statements.
+// We can remove support for it when we drop support for legacy score computation.
+func (p *Policy) Evaluate(findings []finding.Finding, checkName *string) (*Evaluation, error) {
 	var results Evaluation
 	for i := range p.Statements {
 		statement := p.Statements[i]
+		if checkName != nil && !slices.Contains(statement.Labels, "check:"+*checkName) {
+			continue
+		}
 		if statement.Require == nil {
 			// TODO: validate in constructor.
 			continue

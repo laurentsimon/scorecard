@@ -16,18 +16,19 @@ package evaluation
 
 import (
 	"github.com/ossf/scorecard/v4/checker"
+	"github.com/ossf/scorecard/v4/evaluation"
 	"github.com/ossf/scorecard/v4/finding"
 )
 
 // BinaryArtifacts evaluates the raw results for the Binary-Artifacts check.
 func BinaryArtifacts(name string, dl checker.DetailLogger,
-	findings []finding.Finding,
+	statements evaluation.Evaluation,
 ) checker.CheckResult {
 	// Compute the score for backward compatibility.
 	score := checker.MaxResultScore
-	for i := range findings {
-		f := findings[i]
-		if f.Outcome != finding.OutcomeNegative {
+	for i := range statements {
+		stmt := statements[i]
+		if stmt.Outcome != finding.OutcomeNegative {
 			continue
 		}
 		// We remove one point for each binary.
