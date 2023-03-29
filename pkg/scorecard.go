@@ -30,7 +30,7 @@ import (
 )
 
 func runEnabledChecks(ctx context.Context,
-	repo clients.Repo, raw *checker.RawResults, checksToRun checker.CheckNameToFnMap,
+	repo clients.Repo, raw *checker.RawResults, checksToRun checker.CheckNameToFnMap, checksDefinitionFile *string,
 	repoClient clients.RepoClient, ossFuzzRepoClient clients.RepoClient, ciiClient clients.CIIBestPracticesClient,
 	vulnsClient clients.VulnerabilitiesClient,
 	resultsCh chan checker.CheckResult,
@@ -43,6 +43,7 @@ func runEnabledChecks(ctx context.Context,
 		VulnerabilitiesClient: vulnsClient,
 		Repo:                  repo,
 		RawResults:            raw,
+		ChecksDefinitionFile:  checksDefinitionFile,
 	}
 	wg := sync.WaitGroup{}
 	for checkName, checkFn := range checksToRun {
@@ -115,7 +116,54 @@ func RunScorecard(ctx context.Context,
 		Date: time.Now(),
 	}
 	resultsCh := make(chan checker.CheckResult)
-	go runEnabledChecks(ctx, repo, &ret.RawResults, checksToRun, repoClient, ossFuzzRepoClient,
+	go runEnabledChecks(ctx, repo, &ret.RawResults, checksToRun, nil,
+		repoClient, ossFuzzRepoClient,
+		ciiClient, vulnsClient, resultsCh)
+
+	for result := range resultsCh {
+		ret.Checks = append(ret.Checks, result)
+	}
+	return ret, nil
+}
+
+func RunScorecardV5(ctx context.Context,
+	repo clients.Repo,
+	commitSHA string,
+	commitDepth int,
+	// TODO: remove checksToRun and compute it automatically
+	checksToRun checker.CheckNameToFnMap,
+	checksDefinitionFile string,
+	repoClient clients.RepoClient,
+	ossFuzzRepoClient clients.RepoClient,
+	ciiClient clients.CIIBestPracticesClient,
+	vulnsClient clients.VulnerabilitiesClient,
+) (ScorecardResult, error) {
+	if err := repoClient.InitRepo(repo, commitSHA, commitDepth); err != nil {
+		// No need to call sce.WithMessage() since InitRepo will do that for us.
+		//nolint:wrapcheck
+		return ScorecardResult{}, err
+	}
+	defer repoClient.Close()
+
+	commitSHA, err := getRepoCommitHash(repoClient)
+	if err != nil || commitSHA == "" {
+		return ScorecardResult{}, err
+	}
+	versionInfo := version.GetVersionInfo()
+	ret := ScorecardResult{
+		Repo: RepoInfo{
+			Name:      repo.URI(),
+			CommitSHA: commitSHA,
+		},
+		Scorecard: ScorecardInfo{
+			Version:   versionInfo.GitVersion,
+			CommitSHA: versionInfo.GitCommit,
+		},
+		Date: time.Now(),
+	}
+	resultsCh := make(chan checker.CheckResult)
+	go runEnabledChecks(ctx, repo, &ret.RawResults, checksToRun, &checksDefinitionFile,
+		repoClient, ossFuzzRepoClient,
 		ciiClient, vulnsClient, resultsCh)
 
 	for result := range resultsCh {

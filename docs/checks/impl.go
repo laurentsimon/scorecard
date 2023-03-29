@@ -51,6 +51,7 @@ func (d *DocImpl) GetCheck(name string) (CheckDoc, error) {
 	ic, exists := d.internaldoc.InternalChecks[name]
 	if !exists {
 		//nolint: wrapcheck
+		panic(errCheckNotExist)
 		return nil, sce.CreateInternal(errCheckNotExist, "")
 	}
 	// Set the name and URL.

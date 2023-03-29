@@ -29,8 +29,9 @@ func evaluateCheck(c *checker.CheckRequest, checkName string) (*evaluation.Evalu
 	if err != nil {
 		return nil, fmt.Errorf("%w", err)
 	}
-	// TODO: make this file dynamic.
-	eval, err := evaluation.Run(findings, "evaluation/policy.yml", &checkName)
+	// We use the evaluation with the default build-in
+	// check definition, hence we pass nil.
+	eval, err := evaluation.Run(findings, nil, &checkName)
 	if err != nil {
 		return nil, fmt.Errorf("%w", err)
 	}

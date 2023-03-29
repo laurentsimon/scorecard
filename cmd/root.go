@@ -124,12 +124,13 @@ func rootCmd(o *options.Options) error {
 		}
 	}
 
-	repoResult, err := pkg.RunScorecard(
+	repoResult, err := pkg.RunScorecardV5(
 		ctx,
 		repoURI,
 		o.Commit,
 		o.CommitDepth,
 		enabledChecks,
+		o.ChecksDefinitionFile,
 		repoClient,
 		ossFuzzRepoClient,
 		ciiClient,
