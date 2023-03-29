@@ -60,8 +60,6 @@ type CheckResult struct {
 	Score   int
 	Reason  string
 	Details []CheckDetail
-	// Structured results.
-	Rules []string // TODO(X): add support.
 }
 
 // CheckDetail contains information for each detail.
@@ -77,7 +75,6 @@ type CheckDetail struct {
 type LogMessage struct {
 	// Structured results.
 	Finding *finding.Finding
-
 	// Non-structured results.
 	Text        string             // A short string explaining why the detail was recorded/logged.
 	Path        string             // Fullpath to the file.

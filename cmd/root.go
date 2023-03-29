@@ -130,7 +130,7 @@ func rootCmd(o *options.Options) error {
 		o.Commit,
 		o.CommitDepth,
 		enabledChecks,
-		o.ChecksDefinitionFile,
+		&o.ChecksDefinitionFile,
 		repoClient,
 		ossFuzzRepoClient,
 		ciiClient,

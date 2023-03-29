@@ -27,10 +27,14 @@ import (
 	"github.com/ossf/scorecard/v4/checker"
 	"github.com/ossf/scorecard/v4/clients"
 	sce "github.com/ossf/scorecard/v4/errors"
+	"github.com/ossf/scorecard/v4/evaluation"
+	"github.com/ossf/scorecard/v4/finding"
+	"github.com/ossf/scorecard/v4/probes"
+	prunner "github.com/ossf/scorecard/v4/probes/zrunner"
 )
 
 func runEnabledChecks(ctx context.Context,
-	repo clients.Repo, raw *checker.RawResults, checksToRun checker.CheckNameToFnMap, checksDefinitionFile *string,
+	repo clients.Repo, raw *checker.RawResults, checksToRun checker.CheckNameToFnMap,
 	repoClient clients.RepoClient, ossFuzzRepoClient clients.RepoClient, ciiClient clients.CIIBestPracticesClient,
 	vulnsClient clients.VulnerabilitiesClient,
 	resultsCh chan checker.CheckResult,
@@ -43,7 +47,6 @@ func runEnabledChecks(ctx context.Context,
 		VulnerabilitiesClient: vulnsClient,
 		Repo:                  repo,
 		RawResults:            raw,
-		ChecksDefinitionFile:  checksDefinitionFile,
 	}
 	wg := sync.WaitGroup{}
 	for checkName, checkFn := range checksToRun {
@@ -116,7 +119,7 @@ func RunScorecard(ctx context.Context,
 		Date: time.Now(),
 	}
 	resultsCh := make(chan checker.CheckResult)
-	go runEnabledChecks(ctx, repo, &ret.RawResults, checksToRun, nil,
+	go runEnabledChecks(ctx, repo, &ret.RawResults, checksToRun,
 		repoClient, ossFuzzRepoClient,
 		ciiClient, vulnsClient, resultsCh)
 
@@ -132,7 +135,7 @@ func RunScorecardV5(ctx context.Context,
 	commitDepth int,
 	// TODO: remove checksToRun and compute it automatically
 	checksToRun checker.CheckNameToFnMap,
-	checksDefinitionFile string,
+	checksDefinitionFile *string,
 	repoClient clients.RepoClient,
 	ossFuzzRepoClient clients.RepoClient,
 	ciiClient clients.CIIBestPracticesClient,
@@ -162,12 +165,31 @@ func RunScorecardV5(ctx context.Context,
 		Date: time.Now(),
 	}
 	resultsCh := make(chan checker.CheckResult)
-	go runEnabledChecks(ctx, repo, &ret.RawResults, checksToRun, &checksDefinitionFile,
+	go runEnabledChecks(ctx, repo, &ret.RawResults, checksToRun,
 		repoClient, ossFuzzRepoClient,
 		ciiClient, vulnsClient, resultsCh)
 
 	for result := range resultsCh {
 		ret.Checks = append(ret.Checks, result)
 	}
+
+	// Run the evaluation part.
+	var findings []finding.Finding
+	// TODO: only enable the checks that need to run for the check definition file,
+	// and replace probes.AllProbes by a list of dynamically-calculated probes.
+	// Right now all probes not enabled show errors.
+	// WARNING: we don't record the probes frm the check runs on purpose:
+	// it lets users use probes that are implemented in scorecard but
+	// not used by default.
+	findings, err = prunner.Run(&ret.RawResults, probes.AllProbes)
+	if err != nil {
+		return ScorecardResult{}, err
+	}
+	eval, err := evaluation.Run(findings, checksDefinitionFile, nil)
+	if err != nil {
+		return ScorecardResult{}, err
+	}
+	ret.StructuredResults = *eval
+	ret.ProbeResults = findings
 	return ret, nil
 }

@@ -35,7 +35,7 @@ type JSONScorecardEvalResult struct {
 }
 
 // TODO: finsinds should enventually be part of the scorecard structure.
-func (r *ScorecardResult) AsSJSON(eval *evaluation.Evaluation, writer io.Writer,
+func (r *ScorecardResult) AsSJSON(writer io.Writer,
 ) error {
 	encoder := json.NewEncoder(writer)
 	out := JSONScorecardEvalResult{
@@ -49,7 +49,7 @@ func (r *ScorecardResult) AsSJSON(eval *evaluation.Evaluation, writer io.Writer,
 		},
 		Date:       r.Date.Format("2006-01-02"),
 		Metadata:   r.Metadata,
-		Statements: *eval,
+		Statements: r.StructuredResults,
 	}
 
 	if err := encoder.Encode(out); err != nil {

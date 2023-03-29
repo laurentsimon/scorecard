@@ -30,9 +30,8 @@ type CheckRequest struct {
 	Repo                  clients.Repo
 	VulnerabilitiesClient clients.VulnerabilitiesClient
 	// UPGRADEv6: return raw results instead of scores.
-	RawResults           *RawResults
-	ChecksDefinitionFile *string
-	RequiredTypes        []RequestType
+	RawResults    *RawResults
+	RequiredTypes []RequestType
 }
 
 // RequestType identifies special requirements/attributes that need to be supported by checks.

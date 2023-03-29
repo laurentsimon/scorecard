@@ -32,7 +32,7 @@ var policyFs embed.FS
 func Run(findings []finding.Finding, checksDefinitionFile *string, checkName *string) (*Evaluation, error) {
 	var content []byte
 	var err error
-	if checksDefinitionFile != nil {
+	if checksDefinitionFile != nil && *checksDefinitionFile != "" {
 		content, err = os.ReadFile(*checksDefinitionFile)
 	} else {
 		content, err = policyFs.ReadFile("policy.yml")

@@ -30,8 +30,6 @@ import (
 	"github.com/ossf/scorecard/v4/log"
 	"github.com/ossf/scorecard/v4/options"
 	spol "github.com/ossf/scorecard/v4/policy"
-	"github.com/ossf/scorecard/v4/probes"
-	prunner "github.com/ossf/scorecard/v4/probes/zrunner"
 )
 
 // ScorecardInfo contains information about the scorecard code that was run.
@@ -49,12 +47,14 @@ type RepoInfo struct {
 // ScorecardResult struct is returned on a successful Scorecard run.
 // nolint
 type ScorecardResult struct {
-	Repo       RepoInfo
-	Date       time.Time
-	Scorecard  ScorecardInfo
-	Checks     []checker.CheckResult
-	RawResults checker.RawResults
-	Metadata   []string
+	Repo              RepoInfo
+	Date              time.Time
+	Scorecard         ScorecardInfo
+	Checks            []checker.CheckResult
+	RawResults        checker.RawResults
+	StructuredResults evaluation.Evaluation
+	ProbeResults      []finding.Finding
+	Metadata          []string
 }
 
 func scoreToString(s float64) string {
@@ -122,21 +122,9 @@ func FormatResults(
 	case options.FormatJSON:
 		err = results.AsJSON2(opts.ShowDetails, log.ParseLevel(opts.LogLevel), doc, os.Stdout)
 	case options.FormatPJSON:
-		var findings []finding.Finding
-		findings, err = prunner.Run(&results.RawResults, probes.AllProbes)
-		if err == nil {
-			err = results.AsPJSON(findings, os.Stdout)
-		}
+		err = results.AsPJSON(os.Stdout)
 	case options.FormatSJSON:
-		var findings []finding.Finding
-		findings, err = prunner.Run(&results.RawResults, probes.AllProbes)
-		if err == nil {
-			var eval *evaluation.Evaluation
-			eval, err = evaluation.Run(findings, &opts.ChecksDefinitionFile, nil)
-			if err == nil {
-				err = results.AsSJSON(eval, os.Stdout)
-			}
-		}
+		err = results.AsSJSON(os.Stdout)
 	case options.FormatRaw:
 		err = results.AsRawJSON(os.Stdout)
 	default:
