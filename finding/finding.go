@@ -43,7 +43,7 @@ const (
 // nolint: govet
 type Location struct {
 	Type      FileType `json:"type"`
-	Value     string   `json:"value"`
+	Path      string   `json:"path"`
 	LineStart *uint    `json:"lineStart,omitempty"`
 	LineEnd   *uint    `json:"lineEnd,omitempty"`
 	Snippet   *string  `json:"snippet,omitempty"`
@@ -167,6 +167,14 @@ func (f *Finding) WithMessage(text string) *Finding {
 // No copy is made.
 func (f *Finding) WithLocation(loc *Location) *Finding {
 	f.Location = loc
+	if f.Remediation != nil && loc != nil {
+		// Replace location data.
+		f.Remediation.Text = strings.Replace(f.Remediation.Text,
+			"${{ finding.location.path }}", loc.Path, -1)
+		f.Remediation.Markdown = strings.Replace(f.Remediation.Markdown,
+			"${{ finding.location.path }}", loc.Path, -1)
+
+	}
 	return f
 }
 
@@ -196,10 +204,11 @@ func (f *Finding) WithRemediationMetadata(values map[string]string) *Finding {
 	if f.Remediation != nil {
 		// Replace all dynamic values.
 		for k, v := range values {
+			// Replace metadata.
 			f.Remediation.Text = strings.Replace(f.Remediation.Text,
-				fmt.Sprintf("${{ %s }}", k), v, -1)
+				fmt.Sprintf("${{ metadata.%s }}", k), v, -1)
 			f.Remediation.Markdown = strings.Replace(f.Remediation.Markdown,
-				fmt.Sprintf("${{ %s }}", k), v, -1)
+				fmt.Sprintf("${{ metadata.%s }}", k), v, -1)
 		}
 	}
 	return f

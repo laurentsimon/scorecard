@@ -54,7 +54,7 @@ func structuredResultString(d *checker.CheckDetail) string {
 	sb.WriteString(fmt.Sprintf("%s: %s", typeToString(d.Type), f.Message))
 
 	if f.Location != nil {
-		sb.WriteString(fmt.Sprintf(": %s", f.Location.Value))
+		sb.WriteString(fmt.Sprintf(": %s", f.Location.Path))
 		if f.Location.LineStart != nil {
 			sb.WriteString(fmt.Sprintf(":%d", *f.Location.LineStart))
 		}

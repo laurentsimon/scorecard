@@ -42,7 +42,7 @@ type RemediationMetadata struct {
 
 // New returns remediation relevant metadata from a CheckRequest.
 func New(c *checker.CheckRequest) (*RemediationMetadata, error) {
-	/*if c == nil || c.RepoClient == nil {
+	if c == nil || c.RepoClient == nil {
 		return &RemediationMetadata{}, nil
 	}
 
@@ -53,10 +53,10 @@ func New(c *checker.CheckRequest) (*RemediationMetadata, error) {
 	}
 
 	uri := c.RepoClient.URI()
-	*/
-	branch := "main"
-	uri := "ossf/scorecard"
-	// TODO: support the request, or have this metadata as a new structure available in
+
+	// branch := "main"
+	// uri := "ossf/scorecard"
+	// // TODO: support the request, or have this metadata as a new structure available in
 	// raw results.
 	parts := strings.Split(uri, "/")
 	if len(parts) != 3 {

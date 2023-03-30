@@ -43,6 +43,7 @@ type RawResults struct {
 	LicenseResults              LicenseData
 	TokenPermissionsResults     TokenPermissionsData
 	CITestResults               CITestData
+	Metadata                    map[string]string
 }
 
 type RevisionCIInfo struct {
@@ -382,7 +383,7 @@ func (f *File) Location() *finding.Location {
 	if f != nil {
 		loc := &finding.Location{
 			Type:      f.Type,
-			Value:     f.Path,
+			Path:      f.Path,
 			LineStart: &f.Offset,
 		}
 		if f.EndOffset != 0 {
@@ -392,7 +393,7 @@ func (f *File) Location() *finding.Location {
 			loc.Snippet = &f.Snippet
 		}
 
-		loc.Value = f.Path
+		loc.Path = f.Path
 		return loc
 	}
 	return nil

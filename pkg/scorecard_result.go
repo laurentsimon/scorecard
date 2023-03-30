@@ -57,6 +57,9 @@ type ScorecardResult struct {
 	Metadata          []string
 }
 
+// RepoMetadataV5 contains metadata information about the repo that was analyzed.
+type RepoMetadataV5 map[string]any
+
 func scoreToString(s float64) string {
 	if s == checker.InconclusiveResultScore {
 		return "?"

@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -133,7 +134,6 @@ func RunScorecardV5(ctx context.Context,
 	repo clients.Repo,
 	commitSHA string,
 	commitDepth int,
-	// TODO: remove checksToRun and compute it automatically
 	checksToRun checker.CheckNameToFnMap,
 	checksDefinitionFile *string,
 	repoClient clients.RepoClient,
@@ -152,6 +152,11 @@ func RunScorecardV5(ctx context.Context,
 	if err != nil || commitSHA == "" {
 		return ScorecardResult{}, err
 	}
+	defaultBranch, err := repoClient.GetDefaultBranchName()
+	if err != nil {
+		return ScorecardResult{}, err
+	}
+
 	versionInfo := version.GetVersionInfo()
 	ret := ScorecardResult{
 		Repo: RepoInfo{
@@ -165,6 +170,20 @@ func RunScorecardV5(ctx context.Context,
 		Date: time.Now(),
 	}
 	resultsCh := make(chan checker.CheckResult)
+
+	// Set metadata for all checks to use. This is necessary
+	// to create remediations frmo the probe yaml files.
+	// TODO: for users to be able to retrieve probe results via
+	// REST API and apply a check definition file, metadata will need to
+	// be recorded in the probe results.
+	ret.RawResults.Metadata = map[string]string{
+		"repository_host":          repo.Host(),
+		"repository_name":          strings.TrimPrefix(repo.URI(), repo.Host()+"/"),
+		"repository_uri":           repo.URI(),
+		"repository_sha1":          commitSHA,
+		"repository_defaultBranch": defaultBranch,
+	}
+
 	go runEnabledChecks(ctx, repo, &ret.RawResults, checksToRun,
 		repoClient, ossFuzzRepoClient,
 		ciiClient, vulnsClient, resultsCh)
