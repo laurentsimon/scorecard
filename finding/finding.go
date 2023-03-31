@@ -182,6 +182,8 @@ func (f *Finding) WithLocation(loc *Location) *Finding {
 // No copy is made.
 func (f *Finding) WithPatch(patch *string) *Finding {
 	f.Remediation.Patch = patch
+	// NOTE: we will update the remediation section
+	// using patch information, e.g. ${{ patch.content }}.
 	return f
 }
 
