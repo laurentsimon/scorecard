@@ -153,7 +153,6 @@ func rootCmd(o *options.Options) error {
 		}
 		fmt.Println("\nRESULTS\n-------")
 	}
-
 	resultsErr := pkg.FormatResults(
 		o,
 		&repoResult,

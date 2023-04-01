@@ -30,6 +30,7 @@ import (
 	"github.com/ossf/scorecard/v4/checks"
 	docs "github.com/ossf/scorecard/v4/docs/checks"
 	sce "github.com/ossf/scorecard/v4/errors"
+	"github.com/ossf/scorecard/v4/evaluation"
 	"github.com/ossf/scorecard/v4/finding"
 	"github.com/ossf/scorecard/v4/log"
 	"github.com/ossf/scorecard/v4/options"
@@ -382,6 +383,47 @@ func detailsToLocations(details []checker.CheckDetail,
 	return locs
 }
 
+func detailsFromStatement(statement evaluation.EvaluatedStatement) []checker.CheckDetail {
+	var details []checker.CheckDetail
+
+	for i := range statement.Findings {
+		// NOTE: We will use the logic field
+		// to decide whether to create multiple results for each AND
+		// or a single one for OR.
+		f := statement.Findings[i]
+		// Only report negative results.
+		if f.Outcome > finding.OutcomePositive {
+			continue
+		}
+		d := checker.CheckDetail{
+			Msg: checker.LogMessage{
+				Text: f.Message,
+			},
+			Type: checker.DetailWarn,
+		}
+		if f.Location != nil {
+			d.Msg.Path = f.Location.Path
+			d.Msg.Type = f.Location.Type
+			if f.Location.LineStart != nil {
+				d.Msg.Offset = *f.Location.LineStart
+			}
+			if f.Location.LineEnd != nil {
+				d.Msg.Offset = *f.Location.LineEnd
+			}
+			if f.Location.Snippet != nil {
+				d.Msg.Snippet = *f.Location.Snippet
+			}
+		}
+		if f.Remediation != nil {
+			d.Msg.Remediation = f.Remediation
+		}
+
+		details = append(details, d)
+	}
+
+	return details
+}
+
 func addDefaultLocation(locs []location, policyFile string) []location {
 	// No details or no locations.
 	// For GitHub to display results, we need to provide
@@ -615,6 +657,15 @@ func toolName(opts *options.Options) string {
 	return "scorecard"
 }
 
+func getBackwardCompatibleCheckScore(checks []checker.CheckResult, name string) (int, error) {
+	for _, c := range checks {
+		if c.Name == name {
+			return c.Score, nil
+		}
+	}
+	return checker.InconclusiveResultScore, fmt.Errorf("check not found")
+}
+
 // AsSARIF outputs ScorecardResult in SARIF 2.1.0 format.
 func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel log.Level,
 	writer io.Writer, checkDocs docs.Doc, policy *spol.ScorecardPolicy,
@@ -628,8 +679,93 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel log.Level,
 	sarif := createSARIFHeader()
 	runs := make(map[string]*run)
 
+	checksProcessed := make(map[string]bool)
+	for i := range r.StructuredResults {
+		statement := r.StructuredResults[i]
+
+		if len(statement.Labels) == 0 || !strings.HasPrefix(statement.Labels[0], "check:") {
+			return sce.WithMessage(sce.ErrScorecardInternal, fmt.Sprintf("No check label in statement: %v", statement.Labels))
+		}
+
+		checkName := strings.TrimPrefix(statement.Labels[0], "check:")
+		checkScore, err := getBackwardCompatibleCheckScore(r.Checks, checkName)
+
+		check := checker.CheckResult{
+			Name:    checkName,
+			Score:   checkScore,
+			Reason:  statement.Text,
+			Details: detailsFromStatement(statement),
+		}
+
+		doc, err := checkDocs.GetCheck(check.Name)
+		if err != nil {
+			return sce.WithMessage(sce.ErrScorecardInternal, fmt.Sprintf("GetCheck: %v: %s", err, check.Name))
+		}
+
+		sarifCheckName, sarifCheckID := createCheckIdentifiers(check.Name)
+		category, err := computeCategory(sarifCheckName, doc.GetSupportedRepoTypes())
+		if err != nil {
+			return sce.WithMessage(sce.ErrScorecardInternal, fmt.Sprintf("computeCategory: %v: %s", err, check.Name))
+		}
+		run := getOrCreateSARIFRun(runs, category, "https://github.com/ossf/scorecard", toolName(opts),
+			r.Scorecard.Version, r.Scorecard.CommitSHA, r.Date, "supply-chain")
+
+		// Create a rule for the first statement only.
+		// We need this because a 'legacy' check may be made of multiple statements.
+		l := len(run.Tool.Driver.Rules)
+		if l == 0 || run.Tool.Driver.Rules[l-1].Name != check.Name {
+			rule := createSARIFRule(sarifCheckName, sarifCheckID,
+				doc.GetDocumentationURL(r.Scorecard.CommitSHA),
+				doc.GetDescription(), doc.GetShort(), doc.GetRisk(),
+				doc.GetRemediation(), doc.GetTags())
+			run.Tool.Driver.Rules = append(run.Tool.Driver.Rules, rule)
+		}
+
+		minScore, enabled, err := getCheckPolicyInfo(policy, check.Name)
+		if err != nil {
+			return err
+		}
+		if !enabled {
+			continue
+		}
+
+		if statement.Outcome != finding.OutcomeNegative {
+			continue
+		}
+
+		if check.Score >= minScore || check.Score == checker.InconclusiveResultScore {
+			continue
+		}
+
+		details := detailsFromStatement(statement)
+		locs := detailsToLocations(details, showDetails, minScore, check.Score)
+
+		RuleIndex := len(run.Tool.Driver.Rules) - 1
+		if len(locs) == 0 {
+			// Note: this is not a valid URI but GitHub still accepts it.
+			// See https://sarifweb.azurewebsites.net/Validation to test verification.
+			locs = addDefaultLocation(locs, "no file associated with this alert")
+			msg := createDefaultLocationMessage(&check, check.Score)
+			cr := createSARIFCheckResult(RuleIndex, sarifCheckID, msg, &locs[0])
+			run.Results = append(run.Results, cr)
+		} else {
+			for _, loc := range locs {
+				// Use the location's message (check's detail's message) as message.
+				msg := messageWithScore(loc.Message.Text, check.Score)
+				cr := createSARIFCheckResult(RuleIndex, sarifCheckID, msg, &loc)
+				run.Results = append(run.Results, cr)
+			}
+		}
+		// Record the check as processed to avoid adding its results again
+		// in the legacy code below.
+		checksProcessed[checkName] = true
+	}
 	//nolint
 	for _, check := range r.Checks {
+		processed, _ := checksProcessed[check.Name]
+		if processed {
+			continue
+		}
 		doc, err := checkDocs.GetCheck(check.Name)
 		if err != nil {
 			return sce.WithMessage(sce.ErrScorecardInternal, fmt.Sprintf("GetCheck: %v: %s", err, check.Name))
