@@ -760,12 +760,14 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel log.Level,
 		// in the legacy code below.
 		checksProcessed[checkName] = true
 	}
+
 	//nolint
 	for _, check := range r.Checks {
 		processed, _ := checksProcessed[check.Name]
 		if processed {
 			continue
 		}
+
 		doc, err := checkDocs.GetCheck(check.Name)
 		if err != nil {
 			return sce.WithMessage(sce.ErrScorecardInternal, fmt.Sprintf("GetCheck: %v: %s", err, check.Name))
@@ -842,7 +844,7 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel log.Level,
 			}
 		}
 	}
-
+	panic("hey")
 	// Set the sarif's runs.
 	sarif.Runs = createSARIFRuns(runs)
 

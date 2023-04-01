@@ -177,11 +177,11 @@ func RunScorecardV5(ctx context.Context,
 	// REST API and apply a check definition file, metadata will need to
 	// be recorded in the probe results.
 	ret.RawResults.Metadata = map[string]string{
-		"repository_host":          repo.Host(),
-		"repository_name":          strings.TrimPrefix(repo.URI(), repo.Host()+"/"),
-		"repository_uri":           repo.URI(),
-		"repository_sha1":          commitSHA,
-		"repository_defaultBranch": defaultBranch,
+		"repository.host":          repo.Host(),
+		"repository.name":          strings.TrimPrefix(repo.URI(), repo.Host()+"/"),
+		"repository.uri":           repo.URI(),
+		"repository.sha1":          commitSHA,
+		"repository.defaultBranch": defaultBranch,
 	}
 
 	go runEnabledChecks(ctx, repo, &ret.RawResults, checksToRun,

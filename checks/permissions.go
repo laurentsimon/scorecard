@@ -49,5 +49,7 @@ func TokenPermissions(c *checker.CheckRequest) checker.CheckResult {
 	}
 
 	// Return the score evaluation.
-	return checker.CheckResult{} // evaluation.TokenPermissions(CheckTokenPermissions, c, &rawData)
+	e := sce.WithMessage(sce.ErrScorecardInternal, "check is disabled")
+	return checker.CreateRuntimeErrorResult(CheckTokenPermissions, e)
+	// evaluation.TokenPermissions(CheckTokenPermissions, c, &rawData)
 }
