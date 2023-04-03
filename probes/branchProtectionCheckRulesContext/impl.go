@@ -27,7 +27,7 @@ import (
 //go:embed *.yml
 var fs embed.FS
 
-var id = "branchProtectionCheckRulesContext"
+var probe = "branchProtectionCheckRulesContext"
 
 func handleSetting(branch clients.BranchRef) (*finding.Finding, error) {
 	// This means there are specific checks enabled.
@@ -35,14 +35,14 @@ func handleSetting(branch clients.BranchRef) (*finding.Finding, error) {
 	// but no specific checks are declared, it's equivalent
 	// to having no status check at all.
 	if len(branch.BranchProtectionRule.CheckRules.Contexts) > 0 {
-		f, err := finding.NewPositive(fs, id,
+		f, err := finding.NewPositive(fs, probe,
 			fmt.Sprintf("status check configured to merge on branch '%s'", *branch.Name), nil)
 		if err != nil {
 			return nil, fmt.Errorf("create finding: %w", err)
 		}
 		return f, nil
 	}
-	f, err := finding.NewNegative(fs, id,
+	f, err := finding.NewNegative(fs, probe,
 		fmt.Sprintf("no status check configured to merge on branch '%s'", *branch.Name), nil)
 	if err != nil {
 		return nil, fmt.Errorf("create finding: %w", err)
@@ -51,7 +51,7 @@ func handleSetting(branch clients.BranchRef) (*finding.Finding, error) {
 	return f, nil
 }
 
-func Run(raw *checker.RawResults) ([]finding.Finding, error) {
+func Run(raw *checker.RawResults) ([]finding.Finding, string, error) {
 	return utils.BranchProtectionRun(raw.BranchProtectionResults.Branches,
-		fs, id, handleSetting)
+		fs, probe, handleSetting)
 }

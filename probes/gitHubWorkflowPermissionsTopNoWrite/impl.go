@@ -26,10 +26,10 @@ import (
 
 //go:embed *.yml
 var fs embed.FS
-var id = "gitHubWorkflowPermissionsTopNoWrite"
+var probe = "gitHubWorkflowPermissionsTopNoWrite"
 
 // TODO: take a config file as input.
-func Run(raw *checker.RawResults) ([]finding.Finding, error) {
+func Run(raw *checker.RawResults) ([]finding.Finding, string, error) {
 	var findings []finding.Finding
 	remediationMetadata, _ := remediation.New(nil)
 	permsData := raw.TokenPermissionsResults.TokenPermissions
@@ -56,12 +56,12 @@ func Run(raw *checker.RawResults) ([]finding.Finding, error) {
 
 		text, err := createText(r)
 		if err != nil {
-			return nil, err
+			return nil, probe, err
 		}
 
 		f, err := createFinding(fs, r.LocationType)
 		if err != nil {
-			return nil, err
+			return nil, probe, err
 		}
 
 		f = f.WithMessage(text).WithLocation(loc)
@@ -71,7 +71,7 @@ func Run(raw *checker.RawResults) ([]finding.Finding, error) {
 			findings = append(findings, *f)
 		case checker.PermissionLevelUndeclared:
 			if r.LocationType == nil {
-				return nil, fmt.Errorf("locationType is nil")
+				return nil, probe, fmt.Errorf("locationType is nil")
 			}
 
 			f = withRemediation(f, remediationMetadata, loc)
@@ -84,14 +84,14 @@ func Run(raw *checker.RawResults) ([]finding.Finding, error) {
 	}
 
 	if len(findings) == 0 {
-		f, err := finding.NewNegative(fs, id, "no workflows found in the repository", nil)
+		f, err := finding.NewNegative(fs, probe, "no workflows found in the repository", nil)
 		if err != nil {
-			return nil, fmt.Errorf("create finding: %w", err)
+			return nil, probe, fmt.Errorf("create finding: %w", err)
 		}
 		findings = append(findings, *f)
 	}
 
-	return findings, nil
+	return findings, probe, nil
 }
 
 func withRemediation(f *finding.Finding,
@@ -110,7 +110,7 @@ func withRemediation(f *finding.Finding,
 func createFinding(fs embed.FS, loct *checker.PermissionLocation) (*finding.Finding, error) {
 	// TODO: only one or share with others
 	if loct == nil || *loct == checker.PermissionLocationTop {
-		f, err := finding.New(fs, id)
+		f, err := finding.New(fs, probe)
 		if err != nil {
 			return nil, fmt.Errorf("%w", err.Error())
 		}

@@ -129,7 +129,7 @@ type tool struct {
 type result struct {
 	RuleID           string            `json:"ruleId"`
 	Level            string            `json:"level,omitempty"` // Optional.
-	RuleIndex        int               `json:"ruleIndex"`
+	ruleIndex        int               `json:"ruleIndex"`
 	Message          text              `json:"message"`
 	Locations        []location        `json:"locations,omitempty"`
 	RelatedLocations []relatedLocation `json:"relatedLocations,omitempty"`
@@ -553,7 +553,7 @@ func createSARIFCheckResult(pos int, checkID, message string, loc *location) res
 		RuleID: checkID,
 		// https://github.com/microsoft/sarif-tutorials/blob/main/docs/2-Basics.md#level
 		// Level:     scoreToLevel(minScore, score),
-		RuleIndex: pos,
+		ruleIndex: pos,
 		Message:   text{Text: t},
 		Locations: []location{*loc},
 	}
@@ -689,6 +689,9 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel log.Level,
 
 		checkName := strings.TrimPrefix(statement.Labels[0], "check:")
 		checkScore, err := getBackwardCompatibleCheckScore(r.Checks, checkName)
+		// Record the check as processed to avoid adding its results again
+		// in the legacy code.
+		checksProcessed[checkName] = true
 
 		check := checker.CheckResult{
 			Name:    checkName,
@@ -740,25 +743,22 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel log.Level,
 		details := detailsFromStatement(statement)
 		locs := detailsToLocations(details, showDetails, minScore, check.Score)
 
-		RuleIndex := len(run.Tool.Driver.Rules) - 1
+		ruleIndex := len(run.Tool.Driver.Rules) - 1
 		if len(locs) == 0 {
 			// Note: this is not a valid URI but GitHub still accepts it.
 			// See https://sarifweb.azurewebsites.net/Validation to test verification.
 			locs = addDefaultLocation(locs, "no file associated with this alert")
 			msg := createDefaultLocationMessage(&check, check.Score)
-			cr := createSARIFCheckResult(RuleIndex, sarifCheckID, msg, &locs[0])
+			cr := createSARIFCheckResult(ruleIndex, sarifCheckID, msg, &locs[0])
 			run.Results = append(run.Results, cr)
 		} else {
 			for _, loc := range locs {
 				// Use the location's message (check's detail's message) as message.
 				msg := messageWithScore(loc.Message.Text, check.Score)
-				cr := createSARIFCheckResult(RuleIndex, sarifCheckID, msg, &loc)
+				cr := createSARIFCheckResult(ruleIndex, sarifCheckID, msg, &loc)
 				run.Results = append(run.Results, cr)
 			}
 		}
-		// Record the check as processed to avoid adding its results again
-		// in the legacy code below.
-		checksProcessed[checkName] = true
 	}
 
 	//nolint
@@ -825,26 +825,26 @@ func (r *ScorecardResult) AsSARIF(showDetails bool, logLevel log.Level,
 
 		// Add default location if no locations are present.
 		// Note: GitHub needs at least one location to show the results.
-		// RuleIndex is the position of the corresponding rule in `run.Tool.Driver.Rules`,
+		// ruleIndex is the position of the corresponding rule in `run.Tool.Driver.Rules`,
 		// so it's the last position for us.
-		RuleIndex := len(run.Tool.Driver.Rules) - 1
+		ruleIndex := len(run.Tool.Driver.Rules) - 1
 		if len(locs) == 0 {
 			// Note: this is not a valid URI but GitHub still accepts it.
 			// See https://sarifweb.azurewebsites.net/Validation to test verification.
 			locs = addDefaultLocation(locs, "no file associated with this alert")
 			msg := createDefaultLocationMessage(&check, check.Score)
-			cr := createSARIFCheckResult(RuleIndex, sarifCheckID, msg, &locs[0])
+			cr := createSARIFCheckResult(ruleIndex, sarifCheckID, msg, &locs[0])
 			run.Results = append(run.Results, cr)
 		} else {
 			for _, loc := range locs {
 				// Use the location's message (check's detail's message) as message.
 				msg := messageWithScore(loc.Message.Text, check.Score)
-				cr := createSARIFCheckResult(RuleIndex, sarifCheckID, msg, &loc)
+				cr := createSARIFCheckResult(ruleIndex, sarifCheckID, msg, &loc)
 				run.Results = append(run.Results, cr)
 			}
 		}
 	}
-	panic("hey")
+
 	// Set the sarif's runs.
 	sarif.Runs = createSARIFRuns(runs)
 

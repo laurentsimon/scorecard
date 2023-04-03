@@ -48,7 +48,7 @@ import (
 	"github.com/ossf/scorecard/v4/probes/toolSonarTypeLiftInstalled"
 )
 
-type ProbeImpl func(*checker.RawResults) ([]finding.Finding, error)
+type ProbeImpl func(*checker.RawResults) ([]finding.Finding, string, error)
 
 var (
 	AllProbes []ProbeImpl

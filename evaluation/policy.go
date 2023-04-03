@@ -15,6 +15,7 @@ package evaluation
 
 import (
 	"fmt"
+	"strings"
 
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
@@ -125,6 +126,14 @@ func PolicyFromBytes(content []byte) (*Policy, error) {
 	return &p, nil
 }
 
+func (s *Statement) legacyCheck(checkName string) bool {
+	return slices.Contains(s.Labels, "check:"+checkName)
+}
+
+func (s *Statement) neededCheck() string {
+	return strings.TrimPrefix(s.Labels[0], "check:")
+}
+
 // Evaluate evaluates the given results with respect to the given policy.
 // checkName is an optional parameter used to generate results for only a particular check,
 // and it's only used by the legacy code to evaluate a subset of statements.
@@ -133,7 +142,7 @@ func (p *Policy) Evaluate(findings []finding.Finding, checkName *string) (*Evalu
 	var results Evaluation
 	for i := range p.Statements {
 		statement := p.Statements[i]
-		if checkName != nil && !slices.Contains(statement.Labels, "check:"+*checkName) {
+		if checkName != nil && !statement.legacyCheck(*checkName) {
 			continue
 		}
 		if statement.Require == nil {
@@ -240,7 +249,7 @@ func evaluateProbe(probeID string, findings []finding.Finding) (finding.Outcome,
 	o := finding.OutcomePositive
 	for i := range findings {
 		f := findings[i]
-		if f.Rule != probeID {
+		if f.Probe != probeID {
 			continue
 		}
 		if f.Outcome < o {

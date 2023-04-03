@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"github.com/ossf/scorecard/v4/clients"
+	"github.com/ossf/scorecard/v4/evaluation"
 )
 
 // CheckRequest struct encapsulates all data to be passed into a CheckFn.
@@ -29,6 +30,7 @@ type CheckRequest struct {
 	Dlogger               DetailLogger
 	Repo                  clients.Repo
 	VulnerabilitiesClient clients.VulnerabilitiesClient
+	EvaluationRunner      *evaluation.EvaluationRunner
 	// UPGRADEv6: return raw results instead of scores.
 	RawResults    *RawResults
 	RequiredTypes []RequestType

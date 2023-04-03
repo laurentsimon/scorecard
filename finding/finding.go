@@ -85,7 +85,7 @@ const (
 // Finding represents a finding.
 // nolint: govet
 type Finding struct {
-	Rule    string  `json:"rule"`
+	Probe   string  `json:"probe"`
 	Outcome Outcome `json:"outcome"`
 	// Risk        probe.Risk         `json:"risk"`
 	Message     string             `json:"message"`
@@ -94,14 +94,14 @@ type Finding struct {
 }
 
 // New creates a new finding.
-func New(loc embed.FS, ruleID string) (*Finding, error) {
-	r, err := probe.New(loc, ruleID)
+func New(loc embed.FS, probeID string) (*Finding, error) {
+	r, err := probe.New(loc, probeID)
 	if err != nil {
 		// nolint
 		return nil, err
 	}
 	f := &Finding{
-		Rule:        ruleID,
+		Probe:       probeID,
 		Outcome:     OutcomeNegative,
 		Remediation: r.Remediation,
 	}
@@ -111,10 +111,10 @@ func New(loc embed.FS, ruleID string) (*Finding, error) {
 	return f, nil
 }
 
-func NewWith(fs embed.FS, ruleID, text string, loc *Location,
+func NewWith(fs embed.FS, probeID, text string, loc *Location,
 	o Outcome,
 ) (*Finding, error) {
-	f, err := New(fs, ruleID)
+	f, err := New(fs, probeID)
 	if err != nil {
 		return nil, fmt.Errorf("finding.New: %w", err)
 	}
@@ -123,9 +123,9 @@ func NewWith(fs embed.FS, ruleID, text string, loc *Location,
 	return f, nil
 }
 
-func NewNegative(fs embed.FS, ruleID, text string, loc *Location,
+func NewNegative(fs embed.FS, probeID, text string, loc *Location,
 ) (*Finding, error) {
-	f, err := NewWith(fs, ruleID, text, loc, OutcomeNegative)
+	f, err := NewWith(fs, probeID, text, loc, OutcomeNegative)
 	if err != nil {
 		return nil, fmt.Errorf("finding.NewWith: %w", err)
 	}
@@ -134,9 +134,9 @@ func NewNegative(fs embed.FS, ruleID, text string, loc *Location,
 	return f, nil
 }
 
-func NewNotAvailable(fs embed.FS, ruleID, text string, loc *Location,
+func NewNotAvailable(fs embed.FS, probeID, text string, loc *Location,
 ) (*Finding, error) {
-	f, err := NewWith(fs, ruleID, text, loc, OutcomeNotAvailable)
+	f, err := NewWith(fs, probeID, text, loc, OutcomeNotAvailable)
 	if err != nil {
 		return nil, fmt.Errorf("finding.NewWith: %w", err)
 	}
@@ -145,9 +145,9 @@ func NewNotAvailable(fs embed.FS, ruleID, text string, loc *Location,
 	return f, nil
 }
 
-func NewPositive(fs embed.FS, ruleID, text string, loc *Location,
+func NewPositive(fs embed.FS, probeID, text string, loc *Location,
 ) (*Finding, error) {
-	f, err := NewWith(fs, ruleID, text, loc, OutcomePositive)
+	f, err := NewWith(fs, probeID, text, loc, OutcomePositive)
 	if err != nil {
 		return nil, fmt.Errorf("finding.NewWith: %w", err)
 	}

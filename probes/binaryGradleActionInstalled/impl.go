@@ -25,13 +25,15 @@ import (
 //go:embed *.yml
 var fs embed.FS
 
-func Run(raw *checker.RawResults) ([]finding.Finding, error) {
+var probe = "binaryGradleActionInstalled"
+
+func Run(raw *checker.RawResults) ([]finding.Finding, string, error) {
 	// TODO: needs implementation.
 	// For the demo, let's assume it fails.
-	f, err := finding.NewNegative(fs, "binaryGradleActionInstalled",
+	f, err := finding.NewNegative(fs, probe,
 		"gradle Action is not installed", nil)
 	if err != nil {
-		return nil, fmt.Errorf("create finding: %w", err)
+		return nil, probe, fmt.Errorf("create finding: %w", err)
 	}
-	return []finding.Finding{*f}, nil
+	return []finding.Finding{*f}, probe, nil
 }

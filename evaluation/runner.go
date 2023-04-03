@@ -25,11 +25,11 @@ import (
 //go:embed policy.yml
 var policyFs embed.FS
 
-// Run runs the check evaluation.
-// checkName is an optional parameter used to generate results for only a particular check,
-// and it's only used by the legacy code to evaluate a subset of statements.
-// We can remove support for it when we drop support for legacy score computation.
-func Run(findings []finding.Finding, checksDefinitionFile *string, checkName *string) (*Evaluation, error) {
+type EvaluationRunner struct {
+	policy *Policy
+}
+
+func EvaluationRunnerNew(checksDefinitionFile *string) (*EvaluationRunner, error) {
 	var content []byte
 	var err error
 	if checksDefinitionFile != nil && *checksDefinitionFile != "" {
@@ -44,6 +44,29 @@ func Run(findings []finding.Finding, checksDefinitionFile *string, checkName *st
 	if err != nil {
 		return nil, fmt.Errorf("create policy: %w", err)
 	}
+	return &EvaluationRunner{
+		policy: p,
+	}, nil
+}
 
-	return p.Evaluate(findings, checkName)
+// Run runs the check evaluation.
+// checkName is an optional parameter used to generate results for only a particular check,
+// and it's only used by the legacy code to evaluate a subset of statements.
+// We can remove support for it when we drop support for legacy score computation.
+func (r *EvaluationRunner) Run(findings []finding.Finding,
+	checkName *string,
+) (*Evaluation, error) {
+	if r.policy == nil {
+		return nil, fmt.Errorf("no policy")
+	}
+	return r.policy.Evaluate(findings, checkName)
+}
+
+func (r *EvaluationRunner) RequiredChecks() []string {
+	checks := make([]string, len(r.policy.Statements))
+	for i := range r.policy.Statements {
+		statement := r.policy.Statements[i]
+		checks[i] = statement.neededCheck()
+	}
+	return checks
 }

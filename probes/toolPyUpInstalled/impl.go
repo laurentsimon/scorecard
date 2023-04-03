@@ -22,12 +22,14 @@ import (
 //go:embed *.yml
 var fs embed.FS
 
+var probe = "toolPyUpInstalled"
+
 func matches(tool checker.Tool) bool {
 	return tool.Name == "PyUp"
 }
 
-func Run(raw *checker.RawResults) ([]finding.Finding, error) {
+func Run(raw *checker.RawResults) ([]finding.Finding, string, error) {
 	tools := raw.DependencyUpdateToolResults.Tools
-	return utils.ToolsRun(tools, fs, "toolPyUpInstalled",
+	return utils.ToolsRun(tools, fs, probe,
 		finding.OutcomePositive, finding.OutcomeNegative, matches)
 }

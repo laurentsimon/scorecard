@@ -22,9 +22,9 @@ import (
 	"github.com/ossf/scorecard/v4/finding"
 )
 
-func ToolsRun(tools []checker.Tool, fs embed.FS, ruleID string,
+func ToolsRun(tools []checker.Tool, fs embed.FS, probeID string,
 	foundOutcome, notFoundOutcome finding.Outcome, match func(tool checker.Tool) bool,
-) ([]finding.Finding, error) {
+) ([]finding.Finding, string, error) {
 	var findings []finding.Finding
 	for i := range tools {
 		tool := tools[i]
@@ -33,18 +33,18 @@ func ToolsRun(tools []checker.Tool, fs embed.FS, ruleID string,
 		}
 
 		if len(tool.Files) == 0 {
-			f, err := finding.NewWith(fs, ruleID, fmt.Sprintf("tool '%s' is used", tool.Name),
+			f, err := finding.NewWith(fs, probeID, fmt.Sprintf("tool '%s' is used", tool.Name),
 				nil, foundOutcome)
 			if err != nil {
-				return nil, fmt.Errorf("create finding: %w", err)
+				return nil, probeID, fmt.Errorf("create finding: %w", err)
 			}
 			findings = append(findings, *f)
 		} else {
 			// Use only the first file.
-			f, err := finding.NewWith(fs, ruleID, fmt.Sprintf("tool '%s' is used", tool.Name),
+			f, err := finding.NewWith(fs, probeID, fmt.Sprintf("tool '%s' is used", tool.Name),
 				tool.Files[0].Location(), foundOutcome)
 			if err != nil {
-				return nil, fmt.Errorf("create finding: %w", err)
+				return nil, probeID, fmt.Errorf("create finding: %w", err)
 			}
 			findings = append(findings, *f)
 		}
@@ -53,13 +53,13 @@ func ToolsRun(tools []checker.Tool, fs embed.FS, ruleID string,
 
 	// No tools found.
 	if len(findings) == 0 {
-		f, err := finding.NewWith(fs, ruleID, "tool not used",
+		f, err := finding.NewWith(fs, probeID, "tool not used",
 			nil, notFoundOutcome)
 		if err != nil {
-			return nil, fmt.Errorf("create finding: %w", err)
+			return nil, probeID, fmt.Errorf("create finding: %w", err)
 		}
 		findings = append(findings, *f)
 	}
 
-	return findings, nil
+	return findings, probeID, nil
 }

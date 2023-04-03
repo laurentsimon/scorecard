@@ -23,15 +23,14 @@ import (
 	prunner "github.com/ossf/scorecard/v4/probes/zrunner"
 )
 
-func evaluateCheck(c *checker.CheckRequest, checkName string) (*evaluation.Evaluation, error) {
-	// Evaluate the check
-	findings, err := prunner.Run(c.RawResults, probes.BinaryArtifacts)
+func evaluateCheck(c *checker.CheckRequest, checkName string, probesToRun []probes.ProbeImpl) (*evaluation.Evaluation, error) {
+	// Run the probes.
+	findings, err := prunner.Run(c.RawResults, probesToRun)
 	if err != nil {
 		return nil, fmt.Errorf("%w", err)
 	}
-	// We use the evaluation with the default build-in
-	// check definition, hence we pass nil.
-	eval, err := evaluation.Run(findings, nil, &checkName)
+
+	eval, err := c.EvaluationRunner.Run(findings, &checkName)
 	if err != nil {
 		return nil, fmt.Errorf("%w", err)
 	}

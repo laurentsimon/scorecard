@@ -26,12 +26,13 @@ import (
 //go:embed *.yml
 var fs embed.FS
 
+var probe = "securityPolicyContainsDisclosure"
+
 func matches(file checker.File) bool {
 	return file.Type != finding.FileTypeURL
 }
 
-func Run(raw *checker.RawResults) ([]finding.Finding, error) {
-	id := "securityPolicyContainsDisclosure"
+func Run(raw *checker.RawResults) ([]finding.Finding, string, error) {
 	var findings []finding.Finding
 	policies := raw.SecurityPolicyResults.PolicyFiles
 	for i := range policies {
@@ -41,28 +42,28 @@ func Run(raw *checker.RawResults) ([]finding.Finding, error) {
 		}
 		discvuls := utils.CountSecInfo(policy.Information, checker.SecurityPolicyInformationTypeText, false)
 		if discvuls > 1 {
-			f, err := finding.NewPositive(fs, id,
+			f, err := finding.NewPositive(fs, probe,
 				"Found disclosure, vulnerability, and/or timelines in security policy", policy.File.Location())
 			if err != nil {
-				return nil, fmt.Errorf("create finding: %w", err)
+				return nil, probe, fmt.Errorf("create finding: %w", err)
 			}
 			findings = append(findings, *f)
 		} else {
-			f, err := finding.NewNegative(fs, id,
+			f, err := finding.NewNegative(fs, probe,
 				"One or no descriptive hints of disclosure, vulnerability, and/or timelines in security policy", nil)
 			if err != nil {
-				return nil, fmt.Errorf("create finding: %w", err)
+				return nil, probe, fmt.Errorf("create finding: %w", err)
 			}
 			findings = append(findings, *f)
 		}
 	}
 
 	if len(findings) == 0 {
-		f, err := finding.NewNegative(fs, id, "no security file to analyze", nil)
+		f, err := finding.NewNegative(fs, probe, "no security file to analyze", nil)
 		if err != nil {
-			return nil, fmt.Errorf("create finding: %w", err)
+			return nil, probe, fmt.Errorf("create finding: %w", err)
 		}
 		findings = append(findings, *f)
 	}
-	return findings, nil
+	return findings, probe, nil
 }

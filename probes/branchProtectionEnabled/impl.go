@@ -26,14 +26,15 @@ import (
 //go:embed *.yml
 var fs embed.FS
 
-func Run(raw *checker.RawResults) ([]finding.Finding, error) {
-	id := "branchProtectionEnabled"
+var probe = "branchProtectionEnabled"
+
+func Run(raw *checker.RawResults) ([]finding.Finding, string, error) {
 	var findings []finding.Finding
 	for i := range raw.BranchProtectionResults.Branches {
 		branch := raw.BranchProtectionResults.Branches[i]
-		f, _, err := utils.IsProtected(branch, fs, id)
+		f, _, err := utils.IsProtected(branch, fs, probe)
 		if err != nil {
-			return nil, fmt.Errorf("create finding: %w", err)
+			return nil, probe, fmt.Errorf("create finding: %w", err)
 		}
 
 		findings = append(findings, *f)
@@ -41,11 +42,11 @@ func Run(raw *checker.RawResults) ([]finding.Finding, error) {
 
 	if len(findings) == 0 {
 		// This should never happen.
-		f, err := finding.NewPositive(fs, id, "no branch on this repository", nil)
+		f, err := finding.NewPositive(fs, probe, "no branch on this repository", nil)
 		if err != nil {
-			return nil, fmt.Errorf("create finding: %w", err)
+			return nil, probe, fmt.Errorf("create finding: %w", err)
 		}
 		findings = append(findings, *f)
 	}
-	return findings, nil
+	return findings, probe, nil
 }

@@ -25,9 +25,9 @@ import (
 // Protected field only indates that the branch matches
 // one `Branch protection probes`. All settings may be disabled,
 // so it does not provide any guarantees.
-func IsProtected(branch clients.BranchRef, fs embed.FS, ruleID string) (*finding.Finding, bool, error) {
+func IsProtected(branch clients.BranchRef, fs embed.FS, probeID string) (*finding.Finding, bool, error) {
 	if branch.Protected == nil {
-		f, err := finding.NewNotAvailable(fs, ruleID,
+		f, err := finding.NewNotAvailable(fs, probeID,
 			fmt.Sprintf("cannot retrieve settings for branch '%s' not ", *branch.Name), nil)
 		if err != nil {
 			return nil, false, fmt.Errorf("create finding: %w", err)
@@ -36,14 +36,14 @@ func IsProtected(branch clients.BranchRef, fs embed.FS, ruleID string) (*finding
 	}
 
 	if !*branch.Protected {
-		f, err := finding.NewNegative(fs, ruleID,
+		f, err := finding.NewNegative(fs, probeID,
 			fmt.Sprintf("branch '%s' has no protection", *branch.Name), nil)
 		if err != nil {
 			return nil, false, fmt.Errorf("create finding: %w", err)
 		}
 		return f, false, nil
 	}
-	f, err := finding.NewPositive(fs, ruleID,
+	f, err := finding.NewPositive(fs, probeID,
 		fmt.Sprintf("branch '%s' has protection enabled", *branch.Name), nil)
 	if err != nil {
 		return nil, false, fmt.Errorf("create finding: %w", err)
@@ -52,15 +52,15 @@ func IsProtected(branch clients.BranchRef, fs embed.FS, ruleID string) (*finding
 }
 
 func BranchProtectionRun(branches []clients.BranchRef,
-	fs embed.FS, ruleID string,
+	fs embed.FS, probeID string,
 	getSetting func(clients.BranchRef) (*finding.Finding, error),
-) ([]finding.Finding, error) {
+) ([]finding.Finding, string, error) {
 	var findings []finding.Finding
 	for i := range branches {
 		branch := branches[i]
-		f, ok, err := IsProtected(branch, fs, ruleID)
+		f, ok, err := IsProtected(branch, fs, probeID)
 		if err != nil {
-			return nil, fmt.Errorf("create finding: %w", err)
+			return nil, probeID, fmt.Errorf("create finding: %w", err)
 		}
 		if !ok {
 			// Only report non-positive results.
@@ -72,10 +72,10 @@ func BranchProtectionRun(branches []clients.BranchRef,
 		// we're looking for.
 		ff, err := getSetting(branch)
 		if err != nil {
-			return nil, fmt.Errorf("getSetting: %w", err)
+			return nil, probeID, fmt.Errorf("getSetting: %w", err)
 		}
 		if ff == nil {
-			return nil, fmt.Errorf("nil findings: %v, %v", i, branch.Name)
+			return nil, probeID, fmt.Errorf("nil findings: %v, %v", i, branch.Name)
 		}
 
 		findings = append(findings, *ff)
@@ -83,11 +83,11 @@ func BranchProtectionRun(branches []clients.BranchRef,
 
 	if len(findings) == 0 {
 		// This should never happen.
-		f, err := finding.NewPositive(fs, ruleID, "no branch on this repository", nil)
+		f, err := finding.NewPositive(fs, probeID, "no branch on this repository", nil)
 		if err != nil {
-			return nil, fmt.Errorf("create finding: %w", err)
+			return nil, probeID, fmt.Errorf("create finding: %w", err)
 		}
 		findings = append(findings, *f)
 	}
-	return findings, nil
+	return findings, probeID, nil
 }

@@ -16,6 +16,7 @@ package zrunner
 
 import (
 	"github.com/ossf/scorecard/v4/checker"
+	serrors "github.com/ossf/scorecard/v4/errors"
 	"github.com/ossf/scorecard/v4/finding"
 	"github.com/ossf/scorecard/v4/probes"
 )
@@ -24,12 +25,15 @@ func Run(raw *checker.RawResults, probesToRun []probes.ProbeImpl) ([]finding.Fin
 	var findings []finding.Finding
 	for _, item := range probesToRun {
 		f := item
-		// TODO: handle error so that it does not take down the entire
-		// run.
-		// TODO: this should be run concurrently.
-		ff, err := f(raw)
+		ff, probeID, err := f(raw)
 		if err != nil {
-			return nil, err
+			findings = append(findings,
+				finding.Finding{
+					Probe:   probeID,
+					Outcome: finding.OutcomeError,
+					Message: serrors.WithMessage(serrors.ErrScorecardInternal, err.Error()).Error(),
+				})
+			continue
 		}
 		if len(ff) > 0 {
 			findings = append(findings, ff...)

@@ -24,7 +24,8 @@ import (
 
 //go:embed *.yml
 var fs embed.FS
+var probe = "fuzzedWithGoNative"
 
-func Run(raw *checker.RawResults) ([]finding.Finding, error) {
-	return utils.FuzzerRun(raw, fs, "fuzzedWithGoNative", "GoNativeFuzzer")
+func Run(raw *checker.RawResults) ([]finding.Finding, string, error) {
+	return utils.FuzzerRun(raw, fs, probe, "GoNativeFuzzer")
 }

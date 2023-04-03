@@ -36,6 +36,7 @@ import (
 
 func runEnabledChecks(ctx context.Context,
 	repo clients.Repo, raw *checker.RawResults, checksToRun checker.CheckNameToFnMap,
+	evaluationRunner *evaluation.EvaluationRunner,
 	repoClient clients.RepoClient, ossFuzzRepoClient clients.RepoClient, ciiClient clients.CIIBestPracticesClient,
 	vulnsClient clients.VulnerabilitiesClient,
 	resultsCh chan checker.CheckResult,
@@ -46,6 +47,7 @@ func runEnabledChecks(ctx context.Context,
 		OssFuzzRepo:           ossFuzzRepoClient,
 		CIIClient:             ciiClient,
 		VulnerabilitiesClient: vulnsClient,
+		EvaluationRunner:      evaluationRunner,
 		Repo:                  repo,
 		RawResults:            raw,
 	}
@@ -96,38 +98,9 @@ func RunScorecard(ctx context.Context,
 	ciiClient clients.CIIBestPracticesClient,
 	vulnsClient clients.VulnerabilitiesClient,
 ) (ScorecardResult, error) {
-	if err := repoClient.InitRepo(repo, commitSHA, commitDepth); err != nil {
-		// No need to call sce.WithMessage() since InitRepo will do that for us.
-		//nolint:wrapcheck
-		return ScorecardResult{}, err
-	}
-	defer repoClient.Close()
-
-	commitSHA, err := getRepoCommitHash(repoClient)
-	if err != nil || commitSHA == "" {
-		return ScorecardResult{}, err
-	}
-	versionInfo := version.GetVersionInfo()
-	ret := ScorecardResult{
-		Repo: RepoInfo{
-			Name:      repo.URI(),
-			CommitSHA: commitSHA,
-		},
-		Scorecard: ScorecardInfo{
-			Version:   versionInfo.GitVersion,
-			CommitSHA: versionInfo.GitCommit,
-		},
-		Date: time.Now(),
-	}
-	resultsCh := make(chan checker.CheckResult)
-	go runEnabledChecks(ctx, repo, &ret.RawResults, checksToRun,
-		repoClient, ossFuzzRepoClient,
-		ciiClient, vulnsClient, resultsCh)
-
-	for result := range resultsCh {
-		ret.Checks = append(ret.Checks, result)
-	}
-	return ret, nil
+	return RunScorecardV5(ctx, repo, commitSHA, commitDepth,
+		checksToRun, nil, repoClient, ossFuzzRepoClient,
+		ciiClient, vulnsClient)
 }
 
 func RunScorecardV5(ctx context.Context,
@@ -148,7 +121,18 @@ func RunScorecardV5(ctx context.Context,
 	}
 	defer repoClient.Close()
 
-	commitSHA, err := getRepoCommitHash(repoClient)
+	evaluationRunner, err := evaluation.EvaluationRunnerNew(checksDefinitionFile)
+	if err != nil {
+		//nolint:wrapcheck
+		return ScorecardResult{}, err
+	}
+
+	if err != nil {
+		//nolint:wrapcheck
+		return ScorecardResult{}, err
+	}
+
+	commitSHA, err = getRepoCommitHash(repoClient)
 	if err != nil || commitSHA == "" {
 		return ScorecardResult{}, err
 	}
@@ -184,8 +168,14 @@ func RunScorecardV5(ctx context.Context,
 		"repository.defaultBranch": defaultBranch,
 	}
 
+	// NOTE: we do not support --checks options for structured results.
+	// To support it, we will need to delete entries in checksToRun
+	// based on the content of evaluationRunner.RequiredChecks().
+	// We only want to do that for the default 'json' output that
+	// does not use a checksDefinitionFile.
+
 	go runEnabledChecks(ctx, repo, &ret.RawResults, checksToRun,
-		repoClient, ossFuzzRepoClient,
+		evaluationRunner, repoClient, ossFuzzRepoClient,
 		ciiClient, vulnsClient, resultsCh)
 
 	for result := range resultsCh {
@@ -194,17 +184,15 @@ func RunScorecardV5(ctx context.Context,
 
 	// Run the evaluation part.
 	var findings []finding.Finding
-	// TODO: only enable the checks that need to run for the check definition file,
-	// and replace probes.AllProbes by a list of dynamically-calculated probes.
-	// Right now all probes not enabled show errors.
-	// WARNING: we don't record the probes frm the check runs on purpose:
+	// TODO: only enable the checks that need to run for the check definition file.
+	// WARNING: we don't record the probes from the check runs on purpose:
 	// it lets users use probes that are implemented in scorecard but
 	// not used by default.
 	findings, err = prunner.Run(&ret.RawResults, probes.AllProbes)
 	if err != nil {
 		return ScorecardResult{}, err
 	}
-	eval, err := evaluation.Run(findings, checksDefinitionFile, nil)
+	eval, err := evaluationRunner.Run(findings, nil)
 	if err != nil {
 		return ScorecardResult{}, err
 	}

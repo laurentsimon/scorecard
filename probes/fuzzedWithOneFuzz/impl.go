@@ -25,6 +25,8 @@ import (
 //go:embed *.yml
 var fs embed.FS
 
-func Run(raw *checker.RawResults) ([]finding.Finding, error) {
-	return utils.FuzzerRun(raw, fs, "fuzzedWithOneFuzz", "FuzzOne")
+var probe = "fuzzedWithOneFuzz"
+
+func Run(raw *checker.RawResults) ([]finding.Finding, string, error) {
+	return utils.FuzzerRun(raw, fs, probe, "FuzzOne")
 }

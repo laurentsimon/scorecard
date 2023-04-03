@@ -26,12 +26,14 @@ import (
 //go:embed *.yml
 var fs embed.FS
 
+var probe = "binaryGradleNotPresent"
+
 func matches(file checker.File) bool {
 	return path.Base(file.Path) == "gradle-wrapper.jar"
 }
 
-func Run(raw *checker.RawResults) ([]finding.Finding, error) {
+func Run(raw *checker.RawResults) ([]finding.Finding, string, error) {
 	return utils.FilesRun(raw.BinaryArtifactResults.Files,
-		raw.Metadata, fs, "binaryGradleNotPresent", "gradle binary file",
+		raw.Metadata, fs, probe, "gradle binary file",
 		finding.OutcomeNegative, finding.OutcomePositive, matches)
 }

@@ -31,6 +31,7 @@ func BinaryArtifacts(name string, dl checker.DetailLogger,
 		if stmt.Outcome != finding.OutcomeNegative {
 			continue
 		}
+		// TODO: simulate the OR for gradle
 		// We remove one point for each binary.
 		score--
 	}

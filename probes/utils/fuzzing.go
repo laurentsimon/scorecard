@@ -22,7 +22,7 @@ import (
 	"github.com/ossf/scorecard/v4/finding"
 )
 
-func FuzzerRun(raw *checker.RawResults, fs embed.FS, ruleID, fuzzerName string) ([]finding.Finding, error) {
+func FuzzerRun(raw *checker.RawResults, fs embed.FS, probeID, fuzzerName string) ([]finding.Finding, string, error) {
 	var findings []finding.Finding
 	fuzzers := raw.FuzzingResults.Fuzzers
 
@@ -35,11 +35,11 @@ func FuzzerRun(raw *checker.RawResults, fs embed.FS, ruleID, fuzzerName string) 
 		// The current implementation does not provide file location
 		// for all fuzzers. Check this first.
 		if len(fuzzer.Files) == 0 {
-			f, err := finding.NewWith(fs, ruleID,
+			f, err := finding.NewWith(fs, probeID,
 				fmt.Sprintf("%s integration found", fuzzerName), nil,
 				finding.OutcomePositive)
 			if err != nil {
-				return nil, fmt.Errorf("create finding: %w", err)
+				return nil, probeID, fmt.Errorf("create finding: %w", err)
 			}
 			findings = append(findings, *f)
 			continue
@@ -48,11 +48,11 @@ func FuzzerRun(raw *checker.RawResults, fs embed.FS, ruleID, fuzzerName string) 
 		// Files are present. Create one results for each file location.
 		for j := range fuzzer.Files {
 			file := fuzzer.Files[j]
-			f, err := finding.NewWith(fs, ruleID,
+			f, err := finding.NewWith(fs, probeID,
 				fmt.Sprintf("%s integration found", fuzzerName), file.Location(),
 				finding.OutcomePositive)
 			if err != nil {
-				return nil, fmt.Errorf("create finding: %w", err)
+				return nil, probeID, fmt.Errorf("create finding: %w", err)
 			}
 			findings = append(findings, *f)
 		}
@@ -60,13 +60,13 @@ func FuzzerRun(raw *checker.RawResults, fs embed.FS, ruleID, fuzzerName string) 
 	}
 
 	if len(findings) == 0 {
-		f, err := finding.NewNegative(fs, ruleID,
+		f, err := finding.NewNegative(fs, probeID,
 			fmt.Sprintf("no %s integration found", fuzzerName), nil)
 		if err != nil {
-			return nil, fmt.Errorf("create finding: %w", err)
+			return nil, probeID, fmt.Errorf("create finding: %w", err)
 		}
 		findings = append(findings, *f)
 	}
 
-	return findings, nil
+	return findings, probeID, nil
 }

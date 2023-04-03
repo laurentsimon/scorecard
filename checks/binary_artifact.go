@@ -19,6 +19,7 @@ import (
 	"github.com/ossf/scorecard/v4/checks/evaluation"
 	"github.com/ossf/scorecard/v4/checks/raw"
 	sce "github.com/ossf/scorecard/v4/errors"
+	"github.com/ossf/scorecard/v4/probes"
 )
 
 // CheckBinaryArtifacts is the exported name for Binary-Artifacts check.
@@ -49,7 +50,7 @@ func BinaryArtifacts(c *checker.CheckRequest) checker.CheckResult {
 	}
 
 	// Evaluate the check dynamically.
-	eval, err := evaluateCheck(c, CheckBinaryArtifacts)
+	eval, err := evaluateCheck(c, CheckBinaryArtifacts, probes.BinaryArtifacts)
 	if err != nil {
 		e := sce.WithMessage(sce.ErrScorecardInternal, err.Error())
 		return checker.CreateRuntimeErrorResult(CheckBinaryArtifacts, e)

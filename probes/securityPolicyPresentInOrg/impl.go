@@ -25,16 +25,18 @@ import (
 //go:embed *.yml
 var fs embed.FS
 
+var probe = "securityPolicyPresentInOrg"
+
 func matches(file checker.File) bool {
 	return file.Type == finding.FileTypeURL
 }
 
-func Run(raw *checker.RawResults) ([]finding.Finding, error) {
+func Run(raw *checker.RawResults) ([]finding.Finding, string, error) {
 	var files []checker.File
 	for i := range raw.SecurityPolicyResults.PolicyFiles {
 		files = append(files, raw.SecurityPolicyResults.PolicyFiles[i].File)
 	}
 	return utils.FilesRun(files, raw.Metadata,
-		fs, "securityPolicyPresentInOrg", "security policy file",
+		fs, probe, "security policy file",
 		finding.OutcomePositive, finding.OutcomeNegative, matches)
 }

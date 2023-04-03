@@ -26,12 +26,13 @@ import (
 //go:embed *.yml
 var fs embed.FS
 
+var probe = "securityPolicyContainsLinks"
+
 func matches(file checker.File) bool {
 	return file.Type != finding.FileTypeURL
 }
 
-func Run(raw *checker.RawResults) ([]finding.Finding, error) {
-	id := "securityPolicyContainsLinks"
+func Run(raw *checker.RawResults) ([]finding.Finding, string, error) {
 	var findings []finding.Finding
 	policies := raw.SecurityPolicyResults.PolicyFiles
 	for i := range policies {
@@ -40,28 +41,28 @@ func Run(raw *checker.RawResults) ([]finding.Finding, error) {
 		urls := utils.CountSecInfo(policy.Information, checker.SecurityPolicyInformationTypeLink, true)
 
 		if (urls + emails) > 0 {
-			f, err := finding.NewPositive(fs, id,
+			f, err := finding.NewPositive(fs, probe,
 				"URL or email contacts found", policy.File.Location())
 			if err != nil {
-				return nil, fmt.Errorf("create finding: %w", err)
+				return nil, probe, fmt.Errorf("create finding: %w", err)
 			}
 			findings = append(findings, *f)
 		} else {
-			f, err := finding.NewNegative(fs, id,
+			f, err := finding.NewNegative(fs, probe,
 				"no URL or email contacts found", nil)
 			if err != nil {
-				return nil, fmt.Errorf("create finding: %w", err)
+				return nil, probe, fmt.Errorf("create finding: %w", err)
 			}
 			findings = append(findings, *f)
 		}
 	}
 
 	if len(findings) == 0 {
-		f, err := finding.NewNegative(fs, id, "no security file to analyze", nil)
+		f, err := finding.NewNegative(fs, probe, "no security file to analyze", nil)
 		if err != nil {
-			return nil, fmt.Errorf("create finding: %w", err)
+			return nil, probe, fmt.Errorf("create finding: %w", err)
 		}
 		findings = append(findings, *f)
 	}
-	return findings, nil
+	return findings, probe, nil
 }

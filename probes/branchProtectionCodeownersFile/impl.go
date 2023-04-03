@@ -25,9 +25,9 @@ import (
 //go:embed *.yml
 var fs embed.FS
 
-var id = "branchProtectionCodeownersFile"
+var probe = "branchProtectionCodeownersFile"
 
-func Run(raw *checker.RawResults) ([]finding.Finding, error) {
+func Run(raw *checker.RawResults) ([]finding.Finding, string, error) {
 	var findings []finding.Finding
 	for i := range raw.BranchProtectionResults.CodeownersFiles {
 		file := raw.BranchProtectionResults.CodeownersFiles[i]
@@ -38,19 +38,19 @@ func Run(raw *checker.RawResults) ([]finding.Finding, error) {
 			file.Path != ".github/CODEOWNERS" {
 			continue
 		}
-		f, err := finding.NewPositive(fs, id, "CODEOWNERS file present", file.Location())
+		f, err := finding.NewPositive(fs, probe, "CODEOWNERS file present", file.Location())
 		if err != nil {
-			return nil, fmt.Errorf("create finding: %w", err)
+			return nil, probe, fmt.Errorf("create finding: %w", err)
 		}
 		findings = append(findings, *f)
 	}
 
 	if len(findings) == 0 {
-		f, err := finding.NewNegative(fs, id, "no CODEOWNERS file present", nil)
+		f, err := finding.NewNegative(fs, probe, "no CODEOWNERS file present", nil)
 		if err != nil {
-			return nil, fmt.Errorf("create finding: %w", err)
+			return nil, probe, fmt.Errorf("create finding: %w", err)
 		}
 		findings = append(findings, *f)
 	}
-	return findings, nil
+	return findings, probe, nil
 }

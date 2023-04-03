@@ -27,11 +27,11 @@ import (
 //go:embed *.yml
 var fs embed.FS
 
-var id = "branchProtectionUpdateToMerge"
+var probe = "branchProtectionUpdateToMerge"
 
 func handleSetting(branch clients.BranchRef) (*finding.Finding, error) {
 	if branch.BranchProtectionRule.CheckRules.UpToDateBeforeMerge == nil {
-		f, err := finding.NewNotAvailable(fs, id,
+		f, err := finding.NewNotAvailable(fs, probe,
 			fmt.Sprintf("cannot retrieve setting for branch '%s'", *branch.Name), nil)
 		if err != nil {
 			return nil, fmt.Errorf("create finding: %w", err)
@@ -39,7 +39,7 @@ func handleSetting(branch clients.BranchRef) (*finding.Finding, error) {
 		return f, nil
 	}
 	if *branch.BranchProtectionRule.CheckRules.UpToDateBeforeMerge {
-		f, err := finding.NewPositive(fs, id,
+		f, err := finding.NewPositive(fs, probe,
 			fmt.Sprintf("status checks require up-to-date branches for '%s'", *branch.Name), nil)
 		if err != nil {
 			return nil, fmt.Errorf("create finding: %w", err)
@@ -47,7 +47,7 @@ func handleSetting(branch clients.BranchRef) (*finding.Finding, error) {
 		return f, nil
 	}
 
-	f, err := finding.NewNegative(fs, id,
+	f, err := finding.NewNegative(fs, probe,
 		fmt.Sprintf("status checks require up-to-date branches for branch '%s'", *branch.Name), nil)
 	if err != nil {
 		return nil, fmt.Errorf("create finding: %w", err)
@@ -55,7 +55,7 @@ func handleSetting(branch clients.BranchRef) (*finding.Finding, error) {
 	return f, nil
 }
 
-func Run(raw *checker.RawResults) ([]finding.Finding, error) {
+func Run(raw *checker.RawResults) ([]finding.Finding, string, error) {
 	return utils.BranchProtectionRun(raw.BranchProtectionResults.Branches,
-		fs, id, handleSetting)
+		fs, probe, handleSetting)
 }

@@ -24,7 +24,8 @@ import (
 
 //go:embed *.yml
 var fs embed.FS
+var probe = "fuzzedWithClusterFuzzLite"
 
-func Run(raw *checker.RawResults) ([]finding.Finding, error) {
-	return utils.FuzzerRun(raw, fs, "fuzzedWithClusterFuzzLite", "ClusterFuzzLite")
+func Run(raw *checker.RawResults) ([]finding.Finding, string, error) {
+	return utils.FuzzerRun(raw, fs, probe, "ClusterFuzzLite")
 }

@@ -22,19 +22,19 @@ import (
 	"github.com/ossf/scorecard/v4/finding"
 )
 
-func FilesRun(files []checker.File, metadata map[string]string, fs embed.FS, ruleID, filetype string,
+func FilesRun(files []checker.File, metadata map[string]string, fs embed.FS, probeID, filetype string,
 	foundOutcome, notFoundOutcome finding.Outcome, match func(file checker.File) bool,
-) ([]finding.Finding, error) {
+) ([]finding.Finding, string, error) {
 	var findings []finding.Finding
 	for i := range files {
 		file := files[i]
 		if !match(file) {
 			continue
 		}
-		f, err := finding.NewWith(fs, ruleID, fmt.Sprintf("%s found", filetype),
+		f, err := finding.NewWith(fs, probeID, fmt.Sprintf("%s found", filetype),
 			file.Location(), foundOutcome)
 		if err != nil {
-			return nil, fmt.Errorf("create finding: %w", err)
+			return nil, probeID, fmt.Errorf("create finding: %w", err)
 		}
 		f = f.WithRemediationMetadata(metadata)
 		findings = append(findings, *f)
@@ -43,14 +43,14 @@ func FilesRun(files []checker.File, metadata map[string]string, fs embed.FS, rul
 
 	// No file found.
 	if len(findings) == 0 {
-		f, err := finding.NewWith(fs, ruleID, fmt.Sprintf("no %s found", filetype),
+		f, err := finding.NewWith(fs, probeID, fmt.Sprintf("no %s found", filetype),
 			nil, notFoundOutcome)
 		if err != nil {
-			return nil, fmt.Errorf("create finding: %w", err)
+			return nil, probeID, fmt.Errorf("create finding: %w", err)
 		}
 		f = f.WithRemediationMetadata(metadata)
 		findings = append(findings, *f)
 	}
 
-	return findings, nil
+	return findings, probeID, nil
 }
