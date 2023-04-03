@@ -168,7 +168,7 @@ func RunScorecardV5(ctx context.Context,
 		"repository.defaultBranch": defaultBranch,
 	}
 
-	// NOTE: we do not support --checks options for structured results.
+	// NOTE: we do not support `--checks` options for structured results.
 	// To support it, we will need to delete entries in checksToRun
 	// based on the content of evaluationRunner.RequiredChecks().
 	// We only want to do that for the default 'json' output that
@@ -187,7 +187,7 @@ func RunScorecardV5(ctx context.Context,
 	// TODO: only enable the checks that need to run for the check definition file.
 	// WARNING: we don't record the probes from the check runs on purpose:
 	// it lets users use probes that are implemented in scorecard but
-	// not used by default.
+	// not used in the default built-in check definition file.
 	findings, err = prunner.Run(&ret.RawResults, probes.AllProbes)
 	if err != nil {
 		return ScorecardResult{}, err
