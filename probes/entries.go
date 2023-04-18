@@ -36,6 +36,8 @@ import (
 	"github.com/ossf/scorecard/v4/probes/fuzzedWithGoNative"
 	"github.com/ossf/scorecard/v4/probes/fuzzedWithOSSFuzz"
 	"github.com/ossf/scorecard/v4/probes/fuzzedWithOneFuzz"
+	"github.com/ossf/scorecard/v4/probes/fuzzedWithPropertyBasedHaskell"
+
 	"github.com/ossf/scorecard/v4/probes/gitHubWorkflowPermissionsTopNoWrite"
 	"github.com/ossf/scorecard/v4/probes/securityPolicyContainsDisclosure"
 	"github.com/ossf/scorecard/v4/probes/securityPolicyContainsLinks"
@@ -57,6 +59,7 @@ var (
 		fuzzedWithOneFuzz.Run,
 		fuzzedWithGoNative.Run,
 		fuzzedWithClusterFuzzLite.Run,
+		fuzzedWithPropertyBasedHaskell.Run,
 	}
 	BinaryArtifacts = []ProbeImpl{
 		binaryGradleNotPresent.Run,
