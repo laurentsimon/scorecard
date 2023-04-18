@@ -17,27 +17,27 @@ statements:
     Regular fuzzing is important to detect vulnerabilities that may be exploited by others, especially since attackers can also use
     fuzzing to find the same flaws.
 
-# - name: binaryGradleSafe
-#   require:
-#     or:
-#     - probe: binaryGradleNotPresent
-#     - probe: binaryGradleActionInstalled
-#   positiveText: The project manages Gradle wrappers safely
-#   negativeText: Gradle wrappers not managed safely
-#   risk: Critical
-#   confidence: [Positive, Negative]
-#   labels: [check:Binary-Artifacts]
-#   motivation: todo
+- name: binaryGradleSafe
+  require:
+    or:
+    - probe: binaryGradleNotPresent
+    - probe: binaryGradleActionInstalled
+  positiveText: The project manages Gradle wrappers safely
+  negativeText: Gradle wrappers not managed safely
+  risk: Critical
+  confidence: [Positive, Negative]
+  labels: [check:Binary-Artifacts]
+  motivation: todo
 
-# - name: binaryOtherNone
-#   require:
-#     probe: binaryOtherNotPresent
-#   positiveText: No other binaries found.
-#   negativeText: Binaries found.
-#   risk: Critical
-#   confidence: [Positive, Negative]
-#   labels: [check:Binary-Artifacts]
-#   motivation: todo
+- name: binaryOtherNone
+  require:
+    probe: binaryOtherNotPresent
+  positiveText: No other binaries found.
+  negativeText: Binaries found.
+  risk: Critical
+  confidence: [Positive, Negative]
+  labels: [check:Binary-Artifacts]
+  motivation: todo
 
 # - name: securityPolicyDefined
 #   require:
