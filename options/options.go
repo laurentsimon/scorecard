@@ -39,6 +39,7 @@ type Options struct {
 	RubyGems             string
 	PolicyFile           string
 	ChecksDefinitionFile string
+	DetailsFormat        string
 	// TODO(action): Add logic for writing results to file
 	ResultsFile string
 	ChecksToRun []string
@@ -65,6 +66,9 @@ func New() *Options {
 	if opts.Format == "" {
 		opts.Format = FormatDefault
 	}
+	if opts.DetailsFormat == "" {
+		opts.DetailsFormat = DetailsFormatString
+	}
 	if opts.LogLevel == "" {
 		opts.LogLevel = DefaultLogLevel
 	}
@@ -90,6 +94,12 @@ const (
 	FormatDefault = "default"
 	// FormatRaw specifies that results should be output in raw format.
 	FormatRaw = "raw"
+
+	// DetailsFormatString specifies that the details will be reported as human-readable strings.
+	DetailsFormatString = "string"
+	// DetailsFormatFindings specifies that the details will be reported as "structured" findings
+	// that are more suited for automated parsing.
+	DetailsFormatFinding = "finding"
 
 	// Environment variables.
 	// EnvVarEnableSarif is the environment variable which controls enabling
@@ -184,6 +194,20 @@ func (o *Options) Validate() error {
 				errChecksDefinitionFileExperimental,
 			)
 		}
+		if o.DetailsFormat != DetailsFormatString {
+			errs = append(
+				errs,
+				errFormatSupportedWithExperimental,
+			)
+		}
+	}
+
+	// Validate DetailsFormat.
+	if !validateDetailsFormat(o.DetailsFormat) {
+		errs = append(
+			errs,
+			errFormatNotSupported,
+		)
 	}
 
 	// Validate format.
@@ -226,7 +250,6 @@ func (o *Options) Validate() error {
 			errs,
 		)
 	}
-
 	return nil
 }
 
@@ -294,6 +317,15 @@ func (o *Options) isV6Enabled() bool {
 func validateFormat(format string) bool {
 	switch format {
 	case FormatJSON, FormatSJSON, FormatPJSON, FormatSarif, FormatDefault, FormatRaw:
+		return true
+	default:
+		return false
+	}
+}
+
+func validateDetailsFormat(format string) bool {
+	switch format {
+	case DetailsFormatFinding, DetailsFormatString:
 		return true
 	default:
 		return false

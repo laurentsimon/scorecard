@@ -93,6 +93,14 @@ type Finding struct {
 	Remediation *probe.Remediation `json:"remediation,omitempty"`
 }
 
+type AnonymousFinding struct {
+	Finding
+	// Remove the probe ID and outcome from
+	// the structure.
+	Probe   string  `json:"probe,omitempty"`
+	Outcome Outcome `json:"outcome,omitempty"`
+}
+
 // New creates a new finding.
 func New(loc embed.FS, probeID string) (*Finding, error) {
 	r, err := probe.New(loc, probeID)
@@ -154,6 +162,14 @@ func NewPositive(fs embed.FS, probeID, text string, loc *Location,
 
 	f = f.WithMessage(text).WithLocation(loc)
 	return f, nil
+}
+
+// Anonimize removes the probe ID and outcome
+// from the finding. It is a temporary solution
+// to integrate the code in the details without exposing
+// too much information.
+func (f *Finding) Anonimize() *AnonymousFinding {
+	return &AnonymousFinding{Finding: *f}
 }
 
 // WithMessage adds a message to an existing finding.

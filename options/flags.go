@@ -51,6 +51,9 @@ const (
 	// FlagShowDetails is the flag name for outputting additional check info.
 	FlagShowDetails = "show-details"
 
+	// FlagDetailsFormat is the flag name for setting the format of the details.
+	FlagDetailsFormat = "details-format"
+
 	// FlagChecks is the flag name for specifying which checks to run.
 	FlagChecks = "checks"
 
@@ -136,6 +139,13 @@ func (o *Options) AddFlags(cmd *cobra.Command) {
 		FlagShowDetails,
 		o.ShowDetails,
 		"show extra details about each check",
+	)
+
+	cmd.Flags().StringVar(
+		&o.DetailsFormat,
+		FlagDetailsFormat,
+		o.DetailsFormat,
+		"format to display the details. One of \"string\", \"findings\"",
 	)
 
 	cmd.Flags().IntVar(

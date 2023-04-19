@@ -24,6 +24,7 @@ import (
 	sce "github.com/ossf/scorecard/v4/errors"
 	"github.com/ossf/scorecard/v4/finding"
 	"github.com/ossf/scorecard/v4/log"
+	"github.com/ossf/scorecard/v4/options"
 )
 
 // nolint: govet
@@ -88,15 +89,12 @@ type JSONScorecardResultV2 struct {
 // nolint: govet
 type jsonCheckResultV3 struct {
 	// Risk     rules.Risk        `json:"risk"`
-	Outcome  finding.Outcome   `json:"outcome"`
-	Findings []finding.Finding `json:"findings"`
-	Score    int               `json:"score"`
-	Reason   string            `json:"reason"`
-	Name     string            `json:"name"`
-	// TODO(X): list of rules run.
-	// TODO(X): simplify the documentation for the overall check
-	// and add the rules that are used in the description.
-	Doc jsonCheckDocumentationV2 `json:"documentation"`
+	// Outcome  finding.Outcome   `json:"outcome"`
+	Findings []finding.AnonymousFinding `json:"details"`
+	Score    int                        `json:"score"`
+	Reason   string                     `json:"reason"`
+	Name     string                     `json:"name"`
+	Doc      jsonCheckDocumentationV2   `json:"documentation"`
 }
 
 // JSONScorecardResultV3 exports results as JSON for structured detail format.
@@ -144,7 +142,17 @@ func (r *ScorecardResult) AsJSON(showDetails bool, logLevel log.Level, writer io
 }
 
 // AsJSON2 exports results as JSON for new detail format.
-func (r *ScorecardResult) AsJSON2(showDetails bool,
+func (r *ScorecardResult) AsJSON2(opts *options.Options,
+	logLevel log.Level, checkDocs docs.Doc, writer io.Writer,
+) error {
+	if opts != nil && opts.DetailsFormat != options.DetailsFormatString {
+		return r.withFindings(opts, logLevel, checkDocs, writer)
+	}
+
+	return r.withString(opts, logLevel, checkDocs, writer)
+}
+
+func (r *ScorecardResult) withString(opts *options.Options,
 	logLevel log.Level, checkDocs docs.Doc, writer io.Writer,
 ) error {
 	score, err := r.GetAggregateScore(checkDocs)
@@ -182,7 +190,7 @@ func (r *ScorecardResult) AsJSON2(showDetails bool,
 			Reason: checkResult.Reason,
 			Score:  checkResult.Score,
 		}
-		if showDetails {
+		if opts != nil && opts.ShowDetails {
 			for i := range checkResult.Details {
 				d := checkResult.Details[i]
 				m := DetailToString(&d, logLevel)
@@ -192,6 +200,68 @@ func (r *ScorecardResult) AsJSON2(showDetails bool,
 				tmpResult.Details = append(tmpResult.Details, m)
 			}
 		}
+		out.Checks = append(out.Checks, tmpResult)
+	}
+
+	if err := encoder.Encode(out); err != nil {
+		return sce.WithMessage(sce.ErrScorecardInternal, fmt.Sprintf("encoder.Encode: %v", err))
+	}
+
+	return nil
+}
+
+func (r *ScorecardResult) withFindings(opts *options.Options,
+	logLevel log.Level, checkDocs docs.Doc, writer io.Writer,
+) error {
+	score, err := r.GetAggregateScore(checkDocs)
+	if err != nil {
+		return err
+	}
+
+	encoder := json.NewEncoder(writer)
+	out := JSONScorecardResultV3{
+		// TODO: for users to be able to retrieve probe results via
+		// REST API and apply a check definition file, metadata will need to
+		// be recorded.
+		Repo: jsonRepoV2{
+			Name:   r.Repo.Name,
+			Commit: r.Repo.CommitSHA,
+		},
+		Scorecard: jsonScorecardV2{
+			Version: r.Scorecard.Version,
+			Commit:  r.Scorecard.CommitSHA,
+		},
+		Date:           r.Date.Format("2006-01-02"),
+		Metadata:       r.Metadata,
+		AggregateScore: jsonFloatScore(score),
+	}
+
+	// TODO: filter the check that are enabled.
+	for _, checkResult := range r.Checks {
+		doc, e := checkDocs.GetCheck(checkResult.Name)
+		if e != nil {
+			return sce.WithMessage(sce.ErrScorecardInternal, fmt.Sprintf("GetCheck: %s: %v", checkResult.Name, e))
+		}
+
+		tmpResult := jsonCheckResultV3{
+			Name: checkResult.Name,
+			Doc: jsonCheckDocumentationV2{
+				URL:   doc.GetDocumentationURL(r.Scorecard.CommitSHA),
+				Short: doc.GetShort(),
+			},
+			Reason: checkResult.Reason,
+			Score:  checkResult.Score,
+		}
+
+		if opts != nil && opts.ShowDetails {
+			for i := range checkResult.Details {
+				d := checkResult.Details[i]
+				if d.Msg.Finding != nil {
+					tmpResult.Findings = append(tmpResult.Findings, *d.Msg.Finding.Anonimize())
+				}
+			}
+		}
+
 		out.Checks = append(out.Checks, tmpResult)
 	}
 	if err := encoder.Encode(out); err != nil {

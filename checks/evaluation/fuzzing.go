@@ -16,39 +16,36 @@ package evaluation
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ossf/scorecard/v4/checker"
 	sce "github.com/ossf/scorecard/v4/errors"
+	"github.com/ossf/scorecard/v4/evaluation"
+	"github.com/ossf/scorecard/v4/finding"
 )
 
 // Fuzzing applies the score policy for the Fuzzing check.
 func Fuzzing(name string, dl checker.DetailLogger,
-	r *checker.FuzzingData,
+	statements evaluation.Evaluation,
 ) checker.CheckResult {
-	if r == nil {
-		e := sce.WithMessage(sce.ErrScorecardInternal, "empty raw data")
+	fuzzers := []string{}
+
+	if len(statements) != 1 {
+		e := sce.WithMessage(sce.ErrScorecardInternal, "1 single statement expected")
 		return checker.CreateRuntimeErrorResult(name, e)
 	}
-
-	if len(r.Fuzzers) == 0 {
+	fuzzingStmt := statements[0]
+	if fuzzingStmt.Outcome == finding.OutcomeNegative {
 		return checker.CreateMinScoreResult(name, "project is not fuzzed")
 	}
-	fuzzers := []string{}
-	for i := range r.Fuzzers {
-		fuzzer := r.Fuzzers[i]
-		for _, f := range fuzzer.Files {
-			msg := checker.LogMessage{
-				Path:   f.Path,
-				Type:   f.Type,
-				Offset: f.Offset,
-			}
-			if f.Snippet != "" {
-				msg.Text = f.Snippet
-			}
-			dl.Info(&msg)
+	// Get the probe IDs, which contains the name of the fuzzers.
+	for i := range fuzzingStmt.Findings {
+		f := fuzzingStmt.Findings[i]
+		if f.Outcome == finding.OutcomePositive {
+			fuzzers = append(fuzzers, f.Probe)
 		}
-		fuzzers = append(fuzzers, fuzzer.Name)
 	}
+
 	return checker.CreateMaxScoreResult(name,
-		fmt.Sprintf("project is fuzzed with %v", fuzzers))
+		fmt.Sprintf("project is fuzzed: %s", strings.Join(fuzzers, ",")))
 }
