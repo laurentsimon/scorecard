@@ -22,6 +22,7 @@ import (
 
 	docs "github.com/ossf/scorecard/v4/docs/checks"
 	sce "github.com/ossf/scorecard/v4/errors"
+	"github.com/ossf/scorecard/v4/evaluation"
 	"github.com/ossf/scorecard/v4/finding"
 	"github.com/ossf/scorecard/v4/log"
 	"github.com/ossf/scorecard/v4/options"
@@ -90,11 +91,23 @@ type JSONScorecardResultV2 struct {
 type jsonCheckResultV3 struct {
 	// Risk     rules.Risk        `json:"risk"`
 	// Outcome  finding.Outcome   `json:"outcome"`
-	Findings []finding.AnonymousFinding `json:"details"`
-	Score    int                        `json:"score"`
-	Reason   string                     `json:"reason"`
-	Name     string                     `json:"name"`
-	Doc      jsonCheckDocumentationV2   `json:"documentation"`
+	Findings   []finding.AnonymousFinding `json:"details"`
+	Confidence evaluation.Confidence      `json:"confidence"`
+	Outcome    finding.Outcome            `json:"outcome"`
+	Score      int                        `json:"score"`
+	Reason     string                     `json:"reason"`
+	Name       string                     `json:"name"`
+	Doc        jsonCheckDocumentationV3   `json:"documentation"`
+}
+
+// jsonCheckDocumentationV3 exports results as JSON for new detail format.
+//
+//nolint:govet
+type jsonCheckDocumentationV3 struct {
+	URL   string          `json:"url"`
+	Short string          `json:"short"`
+	Risk  evaluation.Risk `json:"risk"`
+	// Can be extended if needed.
 }
 
 // JSONScorecardResultV3 exports results as JSON for structured detail format.
@@ -243,22 +256,59 @@ func (r *ScorecardResult) withFindings(opts *options.Options,
 			return sce.WithMessage(sce.ErrScorecardInternal, fmt.Sprintf("GetCheck: %s: %v", checkResult.Name, e))
 		}
 
+		// TODO: need outcome, which needs
+		// to be added to the findings.
 		tmpResult := jsonCheckResultV3{
 			Name: checkResult.Name,
-			Doc: jsonCheckDocumentationV2{
+			Doc: jsonCheckDocumentationV3{
 				URL:   doc.GetDocumentationURL(r.Scorecard.CommitSHA),
 				Short: doc.GetShort(),
+				Risk:  evaluation.RiskNone,
 			},
-			Reason: checkResult.Reason,
-			Score:  checkResult.Score,
+			Reason:     checkResult.Reason,
+			Score:      checkResult.Score,
+			Confidence: evaluation.ConfidenceHigh,
+			Outcome:    finding.OutcomePositive,
 		}
 
 		if opts != nil && opts.ShowDetails {
-			for i := range checkResult.Details {
-				d := checkResult.Details[i]
-				if d.Msg.Finding != nil {
-					tmpResult.Findings = append(tmpResult.Findings, *d.Msg.Finding.Anonimize())
+			// Use the structuredResults field
+			// to access the risk and the confidence.
+
+			foundCheck := false
+			for i := range r.StructuredResults {
+				statement := r.StructuredResults[i]
+				// Is the statement for for this check.
+				if !statement.LegacyCheck(checkResult.Name) {
+					continue
 				}
+				foundCheck = true
+
+				// Update the outcome, risk and confidence
+				// based on each statement related to the check.
+				if tmpResult.Outcome > statement.Outcome {
+					tmpResult.Outcome = statement.Outcome
+				}
+				if tmpResult.Doc.Risk < statement.Risk {
+					tmpResult.Doc.Risk = statement.Risk
+				}
+				if tmpResult.Confidence > statement.Confidence {
+					tmpResult.Confidence = statement.Confidence
+				}
+				for j := range statement.Findings {
+					f := statement.Findings[j]
+					tmpResult.Findings = append(tmpResult.Findings, *f.Anonimize())
+				}
+			}
+			if !foundCheck {
+				return sce.WithMessage(sce.ErrScorecardInternal, fmt.Sprintf("cannot find results for check: %s", checkResult.Name))
+			}
+
+			// Sanity check that the risk in the main check documentation is the same
+			// as the one on the check configuration file.
+			if doc.GetRisk() != tmpResult.Doc.Risk.String() {
+				return sce.WithMessage(sce.ErrScorecardInternal, fmt.Sprintf("risk mismatch: '%v' != '%v'",
+					doc.GetRisk(), tmpResult.Doc.Risk.String()))
 			}
 		}
 

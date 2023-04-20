@@ -95,10 +95,9 @@ type Finding struct {
 
 type AnonymousFinding struct {
 	Finding
-	// Remove the probe ID and outcome from
-	// the structure.
-	Probe   string  `json:"probe,omitempty"`
-	Outcome Outcome `json:"outcome,omitempty"`
+	// Remove the probe ID from
+	// the structure until the probes are GA.
+	Probe string `json:"probe,omitempty"`
 }
 
 // New creates a new finding.

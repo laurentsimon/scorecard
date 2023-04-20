@@ -10,7 +10,7 @@ statements:
     - probe: fuzzedWithPropertyBasedHaskell
   positiveText: The project is fuzzed using one the fuzzers
   negativeText: Configure one of the recognized fuzzers
-  risk: Low
+  risk: Medium
   confidence: [Positive]
   labels: [check:Fuzzing]
   motivation: |

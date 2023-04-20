@@ -28,7 +28,7 @@ func BinaryArtifacts(name string, dl checker.DetailLogger,
 	score := checker.MaxResultScore
 	for i := range statements {
 		stmt := statements[i]
-		if stmt.Outcome != finding.OutcomeNegative {
+		if stmt.Outcome > finding.OutcomeNegative {
 			continue
 		}
 		// TODO: simulate the OR for gradle

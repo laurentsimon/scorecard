@@ -126,6 +126,10 @@ func PolicyFromBytes(content []byte) (*Policy, error) {
 	return &p, nil
 }
 
+func (es *EvaluatedStatement) LegacyCheck(checkName string) bool {
+	return slices.Contains(es.Labels, "check:"+checkName)
+}
+
 func (s *Statement) legacyCheck(checkName string) bool {
 	return slices.Contains(s.Labels, "check:"+checkName)
 }
