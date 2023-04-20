@@ -89,11 +89,8 @@ type JSONScorecardResultV2 struct {
 
 // nolint: govet
 type jsonCheckResultV3 struct {
-	// Risk     rules.Risk        `json:"risk"`
-	// Outcome  finding.Outcome   `json:"outcome"`
 	Findings   []finding.AnonymousFinding `json:"details"`
 	Confidence evaluation.Confidence      `json:"confidence"`
-	Outcome    finding.Outcome            `json:"outcome"`
 	Score      int                        `json:"score"`
 	Reason     string                     `json:"reason"`
 	Name       string                     `json:"name"`
@@ -256,8 +253,6 @@ func (r *ScorecardResult) withFindings(opts *options.Options,
 			return sce.WithMessage(sce.ErrScorecardInternal, fmt.Sprintf("GetCheck: %s: %v", checkResult.Name, e))
 		}
 
-		// TODO: need outcome, which needs
-		// to be added to the findings.
 		tmpResult := jsonCheckResultV3{
 			Name: checkResult.Name,
 			Doc: jsonCheckDocumentationV3{
@@ -268,7 +263,6 @@ func (r *ScorecardResult) withFindings(opts *options.Options,
 			Reason:     checkResult.Reason,
 			Score:      checkResult.Score,
 			Confidence: evaluation.ConfidenceHigh,
-			Outcome:    finding.OutcomePositive,
 		}
 
 		if opts != nil && opts.ShowDetails {
@@ -286,9 +280,6 @@ func (r *ScorecardResult) withFindings(opts *options.Options,
 
 				// Update the outcome, risk and confidence
 				// based on each statement related to the check.
-				if tmpResult.Outcome > statement.Outcome {
-					tmpResult.Outcome = statement.Outcome
-				}
 				if tmpResult.Doc.Risk < statement.Risk {
 					tmpResult.Doc.Risk = statement.Risk
 				}
