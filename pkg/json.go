@@ -25,7 +25,6 @@ import (
 	"github.com/ossf/scorecard/v4/evaluation"
 	"github.com/ossf/scorecard/v4/finding"
 	"github.com/ossf/scorecard/v4/log"
-	"github.com/ossf/scorecard/v4/options"
 )
 
 // nolint: govet
@@ -152,17 +151,7 @@ func (r *ScorecardResult) AsJSON(showDetails bool, logLevel log.Level, writer io
 }
 
 // AsJSON2 exports results as JSON for new detail format.
-func (r *ScorecardResult) AsJSON2(opts *options.Options,
-	logLevel log.Level, checkDocs docs.Doc, writer io.Writer,
-) error {
-	if opts != nil && opts.DetailsFormat != options.DetailsFormatString {
-		return r.withFindings(opts, logLevel, checkDocs, writer)
-	}
-
-	return r.withString(opts, logLevel, checkDocs, writer)
-}
-
-func (r *ScorecardResult) withString(opts *options.Options,
+func (r *ScorecardResult) AsJSON2(showDetails bool,
 	logLevel log.Level, checkDocs docs.Doc, writer io.Writer,
 ) error {
 	score, err := r.GetAggregateScore(checkDocs)
@@ -200,7 +189,7 @@ func (r *ScorecardResult) withString(opts *options.Options,
 			Reason: checkResult.Reason,
 			Score:  checkResult.Score,
 		}
-		if opts != nil && opts.ShowDetails {
+		if showDetails {
 			for i := range checkResult.Details {
 				d := checkResult.Details[i]
 				m := DetailToString(&d, logLevel)
@@ -220,7 +209,7 @@ func (r *ScorecardResult) withString(opts *options.Options,
 	return nil
 }
 
-func (r *ScorecardResult) withFindings(opts *options.Options,
+func (r *ScorecardResult) AsFJSON(showDetails bool,
 	logLevel log.Level, checkDocs docs.Doc, writer io.Writer,
 ) error {
 	score, err := r.GetAggregateScore(checkDocs)
@@ -265,7 +254,7 @@ func (r *ScorecardResult) withFindings(opts *options.Options,
 			Confidence: evaluation.ConfidenceHigh,
 		}
 
-		if opts != nil && opts.ShowDetails {
+		if showDetails {
 			// Use the structuredResults field
 			// to access the risk and the confidence.
 

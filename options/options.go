@@ -39,7 +39,6 @@ type Options struct {
 	RubyGems             string
 	PolicyFile           string
 	ChecksDefinitionFile string
-	DetailsFormat        string
 	// TODO(action): Add logic for writing results to file
 	ResultsFile string
 	ChecksToRun []string
@@ -66,9 +65,6 @@ func New() *Options {
 	if opts.Format == "" {
 		opts.Format = FormatDefault
 	}
-	if opts.DetailsFormat == "" {
-		opts.DetailsFormat = DetailsFormatString
-	}
 	if opts.LogLevel == "" {
 		opts.LogLevel = DefaultLogLevel
 	}
@@ -82,24 +78,21 @@ const (
 	// Formats.
 	// FormatJSON specifies that results should be output in JSON format.
 	FormatJSON = "json"
+	// FormatFJSON specifies that results should be output in JSON format,
+	// but with structured findings.
+	FormatFJSON = "finding"
 	// FormatPJSON specifies that results should be output in probe JSON format,
 	// i.e., with the structured results.
-	FormatPJSON = "probe-json"
+	FormatPJSON = "probe"
 	// FormatSJSON specifies that results should be output in structured JSON format,
 	// i.e., with the structured results.
-	FormatSJSON = "structured-json"
+	FormatSJSON = "structured"
 	// FormatSarif specifies that results should be output in SARIF format.
 	FormatSarif = "sarif"
 	// FormatDefault specifies that results should be output in default format.
 	FormatDefault = "default"
 	// FormatRaw specifies that results should be output in raw format.
 	FormatRaw = "raw"
-
-	// DetailsFormatString specifies that the details will be reported as human-readable strings.
-	DetailsFormatString = "string"
-	// DetailsFormatFindings specifies that the details will be reported as "structured" findings
-	// that are more suited for automated parsing.
-	DetailsFormatFinding = "finding"
 
 	// Environment variables.
 	// EnvVarEnableSarif is the environment variable which controls enabling
@@ -176,13 +169,9 @@ func (o *Options) Validate() error {
 	}
 
 	if !o.isExperimentalEnabled() {
-		if o.Format == FormatSJSON {
-			errs = append(
-				errs,
-				errFormatSupportedWithExperimental,
-			)
-		}
-		if o.Format == FormatPJSON {
+		if o.Format == FormatSJSON ||
+			o.Format == FormatFJSON ||
+			o.Format == FormatPJSON {
 			errs = append(
 				errs,
 				errFormatSupportedWithExperimental,
@@ -194,20 +183,6 @@ func (o *Options) Validate() error {
 				errChecksDefinitionFileExperimental,
 			)
 		}
-		if o.DetailsFormat != DetailsFormatString {
-			errs = append(
-				errs,
-				errFormatSupportedWithExperimental,
-			)
-		}
-	}
-
-	// Validate DetailsFormat.
-	if !validateDetailsFormat(o.DetailsFormat) {
-		errs = append(
-			errs,
-			errFormatNotSupported,
-		)
 	}
 
 	// Validate format.
@@ -316,16 +291,8 @@ func (o *Options) isV6Enabled() bool {
 
 func validateFormat(format string) bool {
 	switch format {
-	case FormatJSON, FormatSJSON, FormatPJSON, FormatSarif, FormatDefault, FormatRaw:
-		return true
-	default:
-		return false
-	}
-}
-
-func validateDetailsFormat(format string) bool {
-	switch format {
-	case DetailsFormatFinding, DetailsFormatString:
+	case FormatJSON, FormatSJSON, FormatFJSON,
+		FormatPJSON, FormatSarif, FormatDefault, FormatRaw:
 		return true
 	default:
 		return false
