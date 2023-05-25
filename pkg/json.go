@@ -88,12 +88,13 @@ type JSONScorecardResultV2 struct {
 
 // nolint: govet
 type jsonCheckResultV3 struct {
-	Findings   []finding.AnonymousFinding `json:"details"`
-	Confidence evaluation.Confidence      `json:"confidence"`
-	Score      int                        `json:"score"`
-	Reason     string                     `json:"reason"`
-	Name       string                     `json:"name"`
-	Doc        jsonCheckDocumentationV3   `json:"documentation"`
+	// Findings   []finding.AnonymousFinding `json:"details"`
+	Findings   []finding.Finding        `json:"details"`
+	Confidence evaluation.Confidence    `json:"confidence"`
+	Score      int                      `json:"score"`
+	Reason     string                   `json:"reason"`
+	Name       string                   `json:"name"`
+	Doc        jsonCheckDocumentationV3 `json:"documentation"`
 }
 
 // jsonCheckDocumentationV3 exports results as JSON for new detail format.
@@ -277,7 +278,8 @@ func (r *ScorecardResult) AsFJSON(showDetails bool,
 				}
 				for j := range statement.Findings {
 					f := statement.Findings[j]
-					tmpResult.Findings = append(tmpResult.Findings, *f.Anonimize())
+					// tmpResult.Findings = append(tmpResult.Findings, *f.Anonimize())
+					tmpResult.Findings = append(tmpResult.Findings, f)
 				}
 			}
 			if !foundCheck {
